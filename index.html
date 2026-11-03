@@ -424,7 +424,7 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     for(let i=0;i<fitted.length;i++){
       const j=assignment[i];
       const d=j>=0&&j<expected.length?costs[i][j]:0.28;
-      scores.push(Math.max(0,Math.min(100,Math.round(100*(1-d/0.28))));
+      scores.push(Math.max(0,Math.min(100,Math.round(100*(1-d/0.28)))));
     }
     const shape=scores.reduce((a,b)=>a+b,0)/n;
     const ratioActual=aw/ah,ratioExpected=ew/eh;
