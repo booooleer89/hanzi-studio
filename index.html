@@ -265,7 +265,7 @@ async function startBulkTranslation(){
     else failed++;
    }catch(err){
     const message=String(err&&err.message||err);
-    if(/quota|limit|429|daily|exceeded/i.test(message)){stoppedByLimit=true;break;}
+    if(/quota|limit|429|daily|exceeded|all available free translations|used all available/i.test(message)){stoppedByLimit=true;break;}
     failed++;
    }
    if(i%8===0)renderWords();
