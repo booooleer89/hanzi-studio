@@ -576,7 +576,7 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
       });
       const usable=results.filter(x=>!x.result.unavailable);
       const overall=usable.length?Math.round(usable.reduce((a,x)=>a+x.result.score,0)/usable.length):0;
-      const success=usable.length===results.length&&overall>=78&&usable.every(x=>x.result.actualCount===x.result.expectedCount);
+      const success=usable.length===results.length&&overall>=70&&usable.every(x=>x.result.actualCount===x.result.expectedCount);
       const summary=$2('analysis-summary');
       summary.textContent='Общее сходство формы: '+overall+'%. '+
         (success?'Форма слова близка к эталону. Порядок черт не учитывался.':
