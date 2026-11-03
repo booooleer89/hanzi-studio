@@ -24,6 +24,13 @@ canvas{width:100%;aspect-ratio:1.55;border:1px solid var(--line);border-radius:1
 table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left;padding:11px;border-bottom:1px solid var(--line);font-size:13px}td:first-child{font-size:20px}
 #strokePreview{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin:10px auto} .strokeChar{width:140px;height:140px}
 @media(max-width:700px){.shell{padding:18px 13px}.layout{grid-template-columns:1fr;gap:18px}.side{display:flex;overflow:auto;border:0;border-bottom:1px solid var(--line);padding:0 0 12px}.nav{white-space:nowrap;width:auto}.hanzi{font-size:54px}.card{padding:15px}.stats{gap:7px}.stat{padding:10px}}
+
+#quiz-target{width:min(100%,340px);height:340px;margin:10px auto;border:1px solid var(--line);border-radius:12px;overflow:hidden;touch-action:none;background-color:#fff;background-image:linear-gradient(to right,transparent calc(50% - .5px),#f0f0ec 50%,transparent calc(50% + .5px)),linear-gradient(to bottom,transparent calc(50% - .5px),#f0f0ec 50%,transparent calc(50% + .5px))}
+#quiz-target svg{display:block;width:100%;height:100%;touch-action:none}
+.quiz-meta{display:flex;justify-content:space-between;gap:10px;max-width:440px;margin:8px auto;color:var(--muted);font-size:12px}
+.quiz-score{font-size:13px;text-align:center;color:#666;min-height:22px;margin:6px 0}
+#skip-character[hidden]{display:none!important}
+.quiz-loading{padding:28px 12px;text-align:center;color:var(--muted);font-size:13px}
 </style>
 </head>
 <body>
@@ -42,20 +49,21 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 <div style="margin-top:12px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap"><button class="btn" id="showhanzi">Показать иероглиф</button><button class="btn" id="showtranslation">Показать перевод</button><button class="btn" id="showstrokes">Порядок черт</button></div>
 <div class="translation hidden" id="translation"></div><div id="strokePreview" class="hidden"></div>
 <div class="muted" style="font-size:12px;margin-top:12px">Напиши слово в поле ниже — палец или Apple Pencil</div></div>
-<div class="pad"><div class="padlabel">Поле для письма</div><canvas id="writing" width="700" height="450"></canvas>
-<div class="actions"><button class="btn" id="clear">Очистить</button><button class="btn primary" id="check">Сверить себя</button></div>
-<div class="feedback" id="feedback">Загружаю слова…</div>
-<div class="actions hidden" id="selfRate"><button class="btn" id="markRight">У меня получилось</button><button class="btn" id="markWrong">Добавить в повторение</button></div>
+<div class="pad"><div class="padlabel">Пиши иероглиф по чертам — пальцем или Apple Pencil</div>
+<div class="quiz-meta"><span id="quiz-char-index">Иероглиф —</span><span id="quiz-stroke-index">Подготовка проверки…</span></div>
+<div id="quiz-target"><div class="quiz-loading">Подготавливаю поле для письма…</div></div>
+<div class="actions"><button class="btn" id="clear">Начать слово заново</button><button class="btn" id="skip-character" hidden>Пропустить иероглиф</button></div>
+<div class="feedback" id="feedback">Загружаю слова…</div><div class="quiz-score" id="quiz-score"></div>
 </div>
 <div class="next"><span class="muted" id="accuracy" style="font-size:12px">Верно: 0 · Повторить: 0</span><button class="btn primary" id="next">Следующее слово →</button></div>
 </div>
-<div class="notice">Порядок черт показывается как образец через Hanzi Writer. Поле принимает рукописный ввод, но автоматическое AI-распознавание и оценка точности вашего написания пока не подключены. Словарь загружается из внешнего источника, поэтому для первого запуска нужен интернет.</div>
+<div class="notice">Проверка идёт автоматически по эталонным чертам: оцениваются форма, положение и направление каждой черты, а также порядок написания. После 2 ошибок появляется подсказка; после 6 попыток сложная черта засчитывается, чтобы можно было продолжить. Это проверка письма по эталону, а не распознавание произвольного текста.</div>
 </section>
 <section id="words" class="hidden"><h1>Словарь HSK</h1><div class="sub">Поиск по иероглифам и пиньиню.</div>
 <div class="toolbar"><select id="wordlevel"><option value="all">Все уровни</option><option value="1">HSK 1</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option><option value="5">HSK 5</option><option value="6">HSK 6</option><option value="7-9">HSK 7–9</option></select><input id="search" placeholder="Найти слово или пиньинь"></div>
 <div class="muted" id="wordcount"></div><div style="overflow:auto;margin-top:10px"><table><thead><tr><th>Слово</th><th>Пиньинь</th><th>Уровень</th><th>Перевод</th></tr></thead><tbody id="wordrows"></tbody></table></div></section>
-<section id="progress" class="hidden"><h1>Мой прогресс</h1><div class="sub">Самооценка сохраняется в этом браузере.</div>
-<div class="stats"><div class="stat"><b id="s-total">0</b><span>Попыток</span></div><div class="stat"><b id="s-right">0</b><span>Получилось</span></div><div class="stat"><b id="s-rate">0%</b><span>Доля успешных</span></div></div>
+<section id="progress" class="hidden"><h1>Мой прогресс</h1><div class="sub">Результаты автоматической проверки сохраняются в этом браузере.</div>
+<div class="stats"><div class="stat"><b id="s-total">0</b><span>Попыток</span></div><div class="stat"><b id="s-right">0</b><span>Получилось</span></div><div class="stat"><b id="s-rate">0%</b><span>Слова без ошибок</span></div></div>
 <h3>Слова для повторения</h3><div id="mistake-list" class="muted"></div><button class="btn" id="reset" style="margin-top:20px">Сбросить статистику</button></section>
 </main></div></div>
 <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.7.2/dist/hanzi-writer.min.js"></script>
@@ -91,4 +99,161 @@ const cv=$('writing'),ctx=cv.getContext('2d');let down=false;function point(e){l
 cv.onpointerdown=e=>{down=true;cv.setPointerCapture(e.pointerId);let p=point(e);ctx.beginPath();ctx.moveTo(p.x,p.y)};cv.onpointermove=e=>{if(!down)return;let p=point(e);ctx.lineTo(p.x,p.y);ctx.stroke()};cv.onpointerup=cv.onpointercancel=()=>down=false;
 load();save();
 </script>
+
+<script>
+(function(){
+  var el = function(id){ return document.getElementById(id); };
+  var quizWriter2 = null, quizChars2 = [], quizPos2 = 0;
+  var quizMistakes2 = 0, quizCorrect2 = 0, quizUnverified2 = 0;
+  var quizGeneration2 = 0, quizTimer2 = null, wordFinished2 = false;
+
+  function cancelCurrent2(){
+    if(quizWriter2 && typeof quizWriter2.cancelQuiz === 'function'){
+      try{ quizWriter2.cancelQuiz(); }catch(e){}
+    }
+    quizWriter2 = null;
+  }
+  function updateCharacterLabel2(){
+    el('quiz-char-index').textContent = 'Иероглиф ' + (quizPos2 + 1) + ' из ' + quizChars2.length;
+  }
+  function finishWord2(){
+    if(wordFinished2) return;
+    wordFinished2 = true;
+    cancelCurrent2();
+    el('skip-character').hidden = true;
+    var checked = quizCorrect2 + quizMistakes2;
+    var accuracy = checked ? Math.round(quizCorrect2 / checked * 100) : 0;
+    var perfect = quizMistakes2 === 0 && quizUnverified2 === 0;
+    rate(perfect);
+    el('feedback').textContent = perfect
+      ? 'Слово пройдено без ошибок. Отличная работа!'
+      : 'Слово завершено. Посмотри, какие черты пришлось исправлять.';
+    el('quiz-score').textContent = 'Точность с первой попытки: ' + accuracy + '% · Ошибок: ' + quizMistakes2 + (quizUnverified2 ? ' · Не проверено: ' + quizUnverified2 : '');
+    el('quiz-stroke-index').textContent = 'Слово завершено';
+  }
+  function nextCharacter2(){
+    if(quizPos2 + 1 < quizChars2.length){
+      quizPos2++;
+      startCharacter2();
+    } else {
+      finishWord2();
+    }
+  }
+  function startCharacter2(){
+    var ch = quizChars2[quizPos2];
+    var generation = ++quizGeneration2;
+    cancelCurrent2();
+    el('skip-character').hidden = true;
+    el('quiz-target').innerHTML = '';
+    updateCharacterLabel2();
+    el('quiz-stroke-index').textContent = 'Загрузка эталона…';
+    el('feedback').textContent = 'Подготавливаю проверку иероглифа ' + ch + '…';
+    if(!window.HanziWriter){
+      el('quiz-target').innerHTML = '<div class="quiz-loading">Модуль проверки не загрузился. Обнови страницу при подключённом интернете.</div>';
+      el('feedback').textContent = 'Не удалось загрузить Hanzi Writer.';
+      el('quiz-stroke-index').textContent = 'Проверка недоступна';
+      el('skip-character').hidden = false;
+      return;
+    }
+    try{
+      quizWriter2 = HanziWriter.create(el('quiz-target'), ch, {
+        width: 320,
+        height: 320,
+        padding: 28,
+        showCharacter: false,
+        showOutline: false,
+        renderer: 'svg',
+        strokeColor: '#b7b9b2',
+        drawingColor: '#252621',
+        drawingWidth: 5,
+        highlightColor: '#ad5045',
+        strokeAnimationSpeed: 1.2,
+        showHintAfterMisses: 2,
+        onLoadCharDataSuccess: function(){
+          if(generation !== quizGeneration2) return;
+          el('feedback').textContent = 'Начинай писать. Сайт проверяет каждую черту по ходу написания.';
+          el('quiz-stroke-index').textContent = 'Жду первую черту';
+        },
+        onLoadCharDataError: function(){
+          if(generation !== quizGeneration2) return;
+          el('quiz-target').innerHTML = '<div class="quiz-loading">Для этого иероглифа не найден эталонный набор черт.</div>';
+          el('feedback').textContent = 'Этот знак пока нельзя проверить автоматически. Пропусти его и продолжи слово.';
+          el('quiz-stroke-index').textContent = 'Нет эталона';
+          el('skip-character').hidden = false;
+        }
+      });
+      quizWriter2.quiz({
+        leniency: 1.0,
+        showHintAfterMisses: 2,
+        markStrokeCorrectAfterMisses: 6,
+        onMistake: function(data){
+          if(generation !== quizGeneration2) return;
+          quizMistakes2++;
+          var strokeNo = (data.strokeNum || 0) + 1;
+          var total = strokeNo + (data.strokesRemaining || 0);
+          el('quiz-stroke-index').textContent = 'Черта ' + strokeNo + ' из ' + total;
+          el('feedback').textContent = 'Черта не совпала. Проверь форму, расположение и направление. Попытка: ' + (data.mistakesOnStroke || 1);
+          el('quiz-score').textContent = 'Ошибок в этом слове: ' + quizMistakes2;
+        },
+        onCorrectStroke: function(data){
+          if(generation !== quizGeneration2) return;
+          quizCorrect2++;
+          var strokeNo = (data.strokeNum || 0) + 1;
+          var total = strokeNo + (data.strokesRemaining || 0);
+          el('quiz-stroke-index').textContent = 'Черта ' + strokeNo + ' из ' + total + ' принята';
+          el('feedback').textContent = 'Верно. Продолжай следующую черту.';
+          el('quiz-score').textContent = 'Принято черт: ' + quizCorrect2 + ' · Ошибок: ' + quizMistakes2;
+        },
+        onComplete: function(){
+          if(generation !== quizGeneration2) return;
+          el('feedback').textContent = 'Иероглиф ' + ch + ' завершён.';
+          el('quiz-stroke-index').textContent = 'Иероглиф готов';
+          quizTimer2 = setTimeout(function(){
+            if(generation === quizGeneration2) nextCharacter2();
+          }, 650);
+        }
+      });
+    } catch(err){
+      if(generation !== quizGeneration2) return;
+      el('quiz-target').innerHTML = '<div class="quiz-loading">Не получилось запустить проверку этого иероглифа.</div>';
+      el('feedback').textContent = 'Ошибка запуска тренажёра. Попробуй начать слово заново.';
+      el('quiz-stroke-index').textContent = 'Ошибка';
+      el('skip-character').hidden = false;
+    }
+  }
+  function startWord2(){
+    if(!current || !current.word) return;
+    if(quizTimer2) clearTimeout(quizTimer2);
+    quizGeneration2++;
+    cancelCurrent2();
+    quizChars2 = Array.from(current.word).filter(function(ch){
+      var cp = ch.codePointAt(0);
+      return (cp >= 0x3400 && cp <= 0x9FFF) || (cp >= 0xF900 && cp <= 0xFAFF);
+    });
+    quizPos2 = 0;
+    quizMistakes2 = 0;
+    quizCorrect2 = 0;
+    quizUnverified2 = 0;
+    wordFinished2 = false;
+    el('quiz-score').textContent = '';
+    el('skip-character').hidden = true;
+    if(!quizChars2.length){
+      el('quiz-target').innerHTML = '<div class="quiz-loading">В этом слове нет иероглифов для проверки.</div>';
+      el('feedback').textContent = 'Не удалось выделить китайские иероглифы.';
+      return;
+    }
+    startCharacter2();
+  }
+  el('clear').onclick = startWord2;
+  el('skip-character').onclick = function(){
+    if(wordFinished2) return;
+    quizUnverified2++;
+    el('feedback').textContent = 'Иероглиф пропущен — переходим к следующему.';
+    nextCharacter2();
+  };
+  window.clearCanvas = startWord2;
+  if(typeof current !== 'undefined' && current && current.word) startWord2();
+})();
+</script>
+
 </body></html>
