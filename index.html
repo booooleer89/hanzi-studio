@@ -442,7 +442,6 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
       results.forEach((item,i)=>resultList.appendChild(buildCharResult2(item.character,i,item.result)));
       $2('analysis-panel').classList.remove('hidden');
       $2('feedback').textContent='Написание сохранено. Оригинал и разбор готовы.';
-      $2('quiz-score').textContent='';
       $2('submit-writing').disabled=true;
       $2('clear').disabled=true;
       $2('retry-writing').disabled=false;
