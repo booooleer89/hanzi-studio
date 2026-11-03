@@ -73,7 +73,7 @@ const CSV_URL='https://raw.githubusercontent.com/ivankra/hsk30/master/hsk30-expa
 let words=[],queue=[],index=0,current=null,stats=JSON.parse(localStorage.getItem('hanzi-stats')||'{}'),mistakes=JSON.parse(localStorage.getItem('hanzi-mistakes')||'[]');
 function parseCSV(s){let rows=[],row=[],v='',q=false;for(let i=0;i<s.length;i++){let c=s[i];if(c==='"'){if(q&&s[i+1]==='"'){v+='"';i++}else q=!q}else if(c===','&&!q){row.push(v);v=''}else if((c==='\n'||c==='\r')&&!q){if(c==='\r'&&s[i+1]==='\n')i++;row.push(v);if(row.some(x=>x.trim()))rows.push(row);row=[];v=''}else v+=c}row.push(v);if(row.some(x=>x.trim()))rows.push(row);return rows}
 function convert(rows){let h=rows.shift().map(x=>x.trim().toLowerCase()),ix=(...a)=>h.findIndex(x=>a.includes(x));let wi=ix('simplified','simplified chinese','hanzi'),pi=ix('pinyin','pinyin with tone marks'),li=ix('level','hsk level'),ti=ix('translation','meaning','english','definition','definitions','translations','gloss');if(wi<0||pi<0||li<0)throw Error('Неизвестный формат словаря');return rows.map(r=>({word:(r[wi]||'').trim().normalize('NFC'),pinyin:(r[pi]||'').trim(),level:(r[li]||'').trim(),translation:ti>=0?(r[ti]||'').trim():''})).filter(x=>x.word&&x.pinyin&&x.level)}
-async function load(){try{let csv=localStorage.getItem('hanzi-csv');if(!csv){let r=await fetch(CSV_URL);if(!r.ok)throw Error('network');csv=await r.text();localStorage.setItem('hanzi-csv',csv)}words=convert(parseCSV(csv));$('status').textContent=words.length.toLocaleString('ru-RU')+' слов';build()}catch(e){$('status').textContent='Словарь недоступен';$('feedback').textContent='Не получилось загрузить словарь. Проверь интернет и обнови страницу.'}}
+async function load(){try{let csv=localStorage.getItem('hanzi-csv');if(!csv){let r=await fetch(CSV_URL);if(!r.ok)throw Error('network');csv=await r.text();localStorage.setItem('hanzi-csv',csv)}words=convert(parseCSV(csv));let trCache={};try{trCache=JSON.parse(localStorage.getItem('hanzi-ru-translation-cache')||'{}')||{}}catch(e){}words.forEach(w=>{if(!w.translation&&trCache[w.word]){w.translation=trCache[w.word];w.autoTranslated=true}});$('status').textContent=words.length.toLocaleString('ru-RU')+' слов';build()}catch(e){$('status').textContent='Словарь недоступен';$('feedback').textContent='Не получилось загрузить словарь. Проверь интернет и обнови страницу.'}}
 function levelMatch(w,l){if(l==='all')return true;if(l==='7-9')return ['7','8','9','7-9'].includes(w.level);return w.level===l}
 function filtered(){let l=$('level').value;return words.filter(w=>levelMatch(w,l)&&($('mode').value!=='mistakes'||mistakes.includes(w.word)))}
 function build(){queue=filtered();if($('mode').value==='random')queue.sort(()=>Math.random()-.5);index=0;show()}
@@ -128,13 +128,13 @@ function renderWords(){
  a=words.filter(w=>levelMatch(w,l)&&(!q||w.word.toLowerCase().includes(q)||w.pinyin.toLowerCase().includes(q)));
  $('wordcount').textContent=a.length+' слов';
  $('wordrows').innerHTML=a.slice(0,300).map((w,i)=>{
-   let cell=w.translation?esc(w.translation):'<button class="btn word-translate" data-index="'+i+'" style="padding:5px 8px;font-size:12px">Получить перевод</button>';
+   let cell=w.translation?esc(w.translation)+(w.autoTranslated?' <small style="color:#85877f">(машинный)</small>':''):'<button class="btn word-translate" data-index="'+i+'" style="padding:5px 8px;font-size:12px">Получить перевод</button>';
    return '<tr><td>'+esc(w.word)+'</td><td>'+esc(w.pinyin)+'</td><td>HSK '+esc(w.level)+'</td><td>'+cell+'</td></tr>';
  }).join('');
  $('wordrows').querySelectorAll('.word-translate').forEach(btn=>{
    btn.onclick=async()=>{
      let w=a[Number(btn.dataset.index)];btn.disabled=true;btn.textContent='Ищу…';
-     try{let meaning=await getRussianMeaning(w.word);if(meaning)w.translation=meaning;else btn.textContent='Не найдено';}
+     try{let meaning=await getRussianMeaning(w.word);if(meaning){w.translation=meaning;w.autoTranslated=true;}else btn.textContent='Не найдено';}
      catch(e){btn.textContent='Повторить';btn.disabled=false;return;}
      renderWords();
    };
