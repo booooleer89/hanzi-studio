@@ -222,7 +222,8 @@ function renderWords(){
  let l=$('wordlevel').value,q=$('search').value.trim().toLocaleLowerCase('ru-RU'),
  a=words.filter(w=>levelMatch(w,l)&&(!q||w.word.toLocaleLowerCase().includes(q)||w.pinyin.toLocaleLowerCase().includes(q)||(w.translation||'').toLocaleLowerCase('ru-RU').includes(q)));
  $('wordcount').textContent=a.length+' слов';
- $('translation-coverage').textContent='Переводы из русскоязычного словаря показаны сразу, где доступны. Остальные можно найти отдельно.';
+ const ruCount=words.filter(w=>!!w.translation).length;
+ $('translation-coverage').textContent='Русские переводы загружены для '+ruCount.toLocaleString('ru-RU')+' из '+words.length.toLocaleString('ru-RU')+' слов. Для остальных можно запросить машинный перевод.';
  $('wordrows').innerHTML=a.slice(0,300).map((w,i)=>{
    let cell=w.translation?esc(w.translation)+(w.autoTranslated?' <small style="color:#85877f">(машинный)</small>':''):'<button class="btn word-translate" data-index="'+i+'" style="padding:5px 8px;font-size:12px">Найти перевод</button>';
    return '<tr><td>'+esc(w.word)+'</td><td>'+esc(w.pinyin)+'</td><td>HSK '+esc(w.level)+'</td><td>'+cell+'</td></tr>';
