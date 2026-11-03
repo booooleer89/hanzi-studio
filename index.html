@@ -110,7 +110,7 @@ async function load(forceFresh){
 function levelMatch(w,l){if(l==='all')return true;if(l==='7-9')return ['7','8','9','7-9'].includes(w.level);return w.level===l}
 function filtered(){let l=$('level').value;return words.filter(w=>levelMatch(w,l)&&($('mode').value!=='mistakes'||mistakes.includes(w.word)))}
 function build(){queue=filtered();if($('mode').value==='random')queue.sort(()=>Math.random()-.5);index=0;show()}
-function clearCanvas(){let c=$('writing'),x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);x.strokeStyle='#292b27';x.lineWidth=9;x.lineCap='round';x.lineJoin='round';}
+function clearCanvas(){let target=$('quiz-target');if(target)target.innerHTML='';}
 function show(){ $('strokePreview').innerHTML='';$('strokePreview').classList.add('hidden');$('selfRate').classList.add('hidden');
 if(!queue.length){$('target').textContent='—';$('target').classList.remove('hidden');$('pinyin').textContent='';$('counter').textContent='Нет слов для этого фильтра';return}
 if(index>=queue.length)index=0;current=queue[index];$('target').textContent=current.word;$('target').classList.add('hidden');$('showhanzi').textContent='Показать иероглиф';$('pinyin').textContent=current.pinyin;
