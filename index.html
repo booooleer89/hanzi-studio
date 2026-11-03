@@ -74,7 +74,8 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 <div class="notice">Сначала ты пишешь самостоятельно — сайт не показывает контур и не исправляет тебя в процессе. После нажатия «Сохранить и проверить» сравниваются записанные траектории с эталонными чертами: примерная похожесть формы, пропорции, количество и порядок. Это геометрическая проверка по базе черт, не AI-распознавание свободного текста; результаты могут быть приблизительными.</div>
 </section>
 <section id="words" class="hidden"><h1>Словарь HSK</h1><div class="sub">Поиск по иероглифам и пиньиню.</div>
-<div class="toolbar"><select id="wordlevel"><option value="all">Все уровни</option><option value="1">HSK 1</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option><option value="5">HSK 5</option><option value="6">HSK 6</option><option value="7-9">HSK 7–9</option></select><input id="search" placeholder="Найти слово или пиньинь"></div>
+<div class="toolbar"><select id="wordlevel"><option value="all">Все уровни</option><option value="1">HSK 1</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option><option value="5">HSK 5</option><option value="6">HSK 6</option><option value="7-9">HSK 7–9</option></select><input id="search" placeholder="По-китайски, пиньиню или по-русски"></div>
+<div class="muted" id="translation-coverage" style="font-size:12px;margin:-5px 0 12px"></div>
 <div class="muted" id="wordcount"></div><div style="overflow:auto;margin-top:10px"><table><thead><tr><th>Слово</th><th>Пиньинь</th><th>Уровень</th><th>Перевод</th></tr></thead><tbody id="wordrows"></tbody></table></div></section>
 <section id="progress" class="hidden"><h1>Мой прогресс</h1><div class="sub">Результаты автоматической проверки сохраняются в этом браузере.</div>
 <div class="stats"><div class="stat"><b id="s-total">0</b><span>Попыток</span></div><div class="stat"><b id="s-right">0</b><span>Получилось</span></div><div class="stat"><b id="s-rate">0%</b><span>Слова без ошибок</span></div></div>
@@ -82,8 +83,10 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 </main></div></div>
 <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.7.2/dist/hanzi-writer.min.js"></script>
 <script>
-const CSV_URL='https://raw.githubusercontent.com/ivankra/hsk30/master/hsk30-expanded.csv', $=id=>document.getElementById(id);
-let words=[],queue=[],index=0,current=null,stats=JSON.parse(localStorage.getItem('hanzi-stats')||'{}'),mistakes=JSON.parse(localStorage.getItem('hanzi-mistakes')||'[]');
+const CSV_URL='https://raw.githubusercontent.com/ivankra/hsk30/master/hsk30-expanded.csv';
+const RU_GLOSSARY_URL='https://raw.githubusercontent.com/LiudmilaLV/json_hsk/master/hsk.json';
+const $=id=>document.getElementById(id);
+let ruGlossary={},words=[],queue=[],index=0,current=null,stats=JSON.parse(localStorage.getItem('hanzi-stats')||'{}'),mistakes=JSON.parse(localStorage.getItem('hanzi-mistakes')||'[]');
 function parseCSV(s){let rows=[],row=[],v='',q=false;for(let i=0;i<s.length;i++){let c=s[i];if(c==='"'){if(q&&s[i+1]==='"'){v+='"';i++}else q=!q}else if(c===','&&!q){row.push(v);v=''}else if((c==='\n'||c==='\r')&&!q){if(c==='\r'&&s[i+1]==='\n')i++;row.push(v);if(row.some(x=>x.trim()))rows.push(row);row=[];v=''}else v+=c}row.push(v);if(row.some(x=>x.trim()))rows.push(row);return rows}
 function convert(rows){let h=rows.shift().map(x=>x.trim().toLowerCase()),ix=(...a)=>h.findIndex(x=>a.includes(x));let wi=ix('simplified','simplified chinese','hanzi'),pi=ix('pinyin','pinyin with tone marks'),li=ix('level','hsk level'),ti=ix('translation','meaning','english','definition','definitions','translations','gloss');if(wi<0||pi<0||li<0)throw Error('Неизвестный формат словаря');return rows.map(r=>({word:(r[wi]||'').trim().normalize('NFC'),pinyin:(r[pi]||'').trim(),level:(r[li]||'').trim(),translation:ti>=0?(r[ti]||'').trim():''})).filter(x=>x.word&&x.pinyin&&x.level)}
 async function load(forceFresh){
@@ -108,6 +111,10 @@ async function load(forceFresh){
    }
    if(!parsed.length)throw Error('Dictionary is empty');
    words=parsed;
+   try{ruGlossary=await loadRussianGlossary();}catch(err){console.warn('Russian glossary unavailable',err);ruGlossary={};}
+   words.forEach(w=>{
+     if(!w.translation&&ruGlossary[w.word]){w.translation=ruGlossary[w.word];w.translationSource='ru-dictionary';}
+   });
    let trCache={};try{trCache=JSON.parse(localStorage.getItem('hanzi-ru-translation-cache')||'{}')||{}}catch(e){}
    words.forEach(w=>{if(!w.translation&&trCache[w.word]){w.translation=trCache[w.word];w.autoTranslated=true}});
    $('status').textContent=words.length.toLocaleString('ru-RU')+' слов';
@@ -174,6 +181,25 @@ $('next').onclick=()=>{index++;show()};
 $('skip').onclick=()=>{index++;show()};
 $('level').onchange=build;$('mode').onchange=build;$('clear').onclick=clearCanvas;
 // Рукописную проверку запускает блок Hanzi Writer ниже.
+async function loadRussianGlossary(){
+ const key='hanzi-ru-glossary-v1';
+ try{
+   const cached=localStorage.getItem(key);
+   if(cached){const map=JSON.parse(cached);if(map&&Object.keys(map).length>500)return map;}
+ }catch(e){}
+ const response=await fetch(RU_GLOSSARY_URL,{cache:'force-cache'});
+ if(!response.ok)throw new Error('Russian glossary HTTP '+response.status);
+ const entries=await response.json();
+ if(!Array.isArray(entries))throw new Error('Invalid Russian glossary');
+ const map={};
+ entries.forEach(entry=>{
+   const raw=entry&&entry.translations&&entry.translations.rus;
+   const meaning=Array.isArray(raw)?raw.filter(Boolean).join('; '):(typeof raw==='string'?raw:'');
+   if(entry&&entry.hanzi&&meaning)map[entry.hanzi]=meaning;
+ });
+ try{localStorage.setItem(key,JSON.stringify(map));}catch(e){}
+ return map;
+}
 async function getRussianMeaning(word){
  const key='hanzi-ru-translation-cache';
  let cache={};try{cache=JSON.parse(localStorage.getItem(key)||'{}')||{};}catch(e){}
@@ -193,11 +219,12 @@ async function getRussianMeaning(word){
 function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function progress(){$('s-total').textContent=stats.total||0;$('s-right').textContent=stats.right||0;$('s-rate').textContent=(stats.total?Math.round((stats.right||0)/stats.total*100):0)+'%';$('mistake-list').innerHTML=mistakes.length?mistakes.map(w=>'<span style="font-size:20px;margin:4px">'+esc(w)+'</span>').join(''):'Ошибок пока нет.'}
 function renderWords(){
- let l=$('wordlevel').value,q=$('search').value.toLowerCase(),
- a=words.filter(w=>levelMatch(w,l)&&(!q||w.word.toLowerCase().includes(q)||w.pinyin.toLowerCase().includes(q)));
+ let l=$('wordlevel').value,q=$('search').value.trim().toLocaleLowerCase('ru-RU'),
+ a=words.filter(w=>levelMatch(w,l)&&(!q||w.word.toLocaleLowerCase().includes(q)||w.pinyin.toLocaleLowerCase().includes(q)||(w.translation||'').toLocaleLowerCase('ru-RU').includes(q)));
  $('wordcount').textContent=a.length+' слов';
+ $('translation-coverage').textContent='Переводы из русскоязычного словаря показаны сразу, где доступны. Остальные можно найти отдельно.';
  $('wordrows').innerHTML=a.slice(0,300).map((w,i)=>{
-   let cell=w.translation?esc(w.translation)+(w.autoTranslated?' <small style="color:#85877f">(машинный)</small>':''):'<button class="btn word-translate" data-index="'+i+'" style="padding:5px 8px;font-size:12px">Получить перевод</button>';
+   let cell=w.translation?esc(w.translation)+(w.autoTranslated?' <small style="color:#85877f">(машинный)</small>':''):'<button class="btn word-translate" data-index="'+i+'" style="padding:5px 8px;font-size:12px">Найти перевод</button>';
    return '<tr><td>'+esc(w.word)+'</td><td>'+esc(w.pinyin)+'</td><td>HSK '+esc(w.level)+'</td><td>'+cell+'</td></tr>';
  }).join('');
  $('wordrows').querySelectorAll('.word-translate').forEach(btn=>{
@@ -356,39 +383,50 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     for(let col=1;col<=n;col++)if(p[col])result[p[col]-1]=col-1;
     return result;
   }
+  function strokeAssignment2(costs){
+    const n=costs.length;if(!n)return [];
+    const u=new Array(n+1).fill(0),v=new Array(n+1).fill(0);
+    const p=new Array(n+1).fill(0),way=new Array(n+1).fill(0);
+    for(let row=1;row<=n;row++){
+      p[0]=row;let col0=0;
+      const minv=new Array(n+1).fill(Infinity),used=new Array(n+1).fill(false);
+      do{
+        used[col0]=true;const row0=p[col0];let delta=Infinity,col1=0;
+        for(let col=1;col<=n;col++){if(used[col])continue;const cur=costs[row0-1][col-1]-u[row0]-v[col];if(cur<minv[col]){minv[col]=cur;way[col]=col0;}if(minv[col]<delta){delta=minv[col];col1=col;}}
+        for(let col=0;col<=n;col++){if(used[col]){u[p[col]]+=delta;v[col]-=delta;}else minv[col]-=delta;}
+        col0=col1;
+      }while(p[col0]!==0);
+      do{const col1=way[col0];p[col0]=p[col1];col0=col1;}while(col0!==0);
+    }
+    const result=new Array(n).fill(-1);
+    for(let col=1;col<=n;col++)if(p[col])result[p[col]-1]=col-1;
+    return result;
+  }
   function scoreCharacter2(userStrokes,charData){
     const medians=charData&&charData.medians;
     if(!Array.isArray(medians)||!medians.length)return {unavailable:true,score:0,notes:['Для этого иероглифа нет эталонных траекторий.']};
-    // Hanzi Writer coordinates use y=900 at the top and y=-124 at the bottom.
+    // Data is in 0..1024 screen coordinates after flipping around y=900.
     const expected=medians.map(stroke=>stroke.map(p=>[Number(p[0]),900-Number(p[1])]));
     const expectedBounds=getBounds2(expected),actualBounds=getBounds2(userStrokes);
-    if(!actualBounds||!userStrokes.length)return {
-      score:0,expectedCount:expected.length,actualCount:0,notes:['Ты пока не нарисовала этот иероглиф.']
-    };
+    if(!actualBounds||!userStrokes.length)return {score:0,expectedCount:expected.length,actualCount:0,notes:['Ты пока не нарисовала этот иероглиф.']};
     const aw=Math.max(1,actualBounds.maxX-actualBounds.minX),ah=Math.max(1,actualBounds.maxY-actualBounds.minY);
     const ew=Math.max(1,expectedBounds.maxX-expectedBounds.minX),eh=Math.max(1,expectedBounds.maxY-expectedBounds.minY);
     const scale=Math.min(ew/aw,eh/ah);
     const acx=(actualBounds.minX+actualBounds.maxX)/2,acy=(actualBounds.minY+actualBounds.maxY)/2;
     const ecx=(expectedBounds.minX+expectedBounds.maxX)/2,ecy=(expectedBounds.minY+expectedBounds.maxY)/2;
     const fitted=userStrokes.map(stroke=>stroke.map(p=>[(p[0]-acx)*scale+ecx,(p[1]-acy)*scale+ecy]));
-    const size=Math.max(fitted.length,expected.length);
-    const costs=Array.from({length:size},(_,i)=>Array.from({length:size},(_,j)=>{
-      if(i>=fitted.length||j>=expected.length)return 0.30;
-      // A stroke may be matched to any expected stroke. Drawing order and direction are ignored.
+    const n=Math.max(fitted.length,expected.length);
+    const costs=Array.from({length:n},(_,i)=>Array.from({length:n},(_,j)=>{
+      if(i>=fitted.length||j>=expected.length)return 0.28;
       return Math.min(pathCost2(fitted[i],expected[j]),pathCost2(reverse2(fitted[i]),expected[j]));
     }));
-    const assignment=strokeAssignment2(costs);
-    const matched=[],strokeScores=[];
+    const assignment=strokeAssignment2(costs),scores=[];
     for(let i=0;i<fitted.length;i++){
       const j=assignment[i];
-      if(j>=0&&j<expected.length){
-        const d=costs[i][j];
-        const value=Math.max(0,Math.min(100,Math.round(100*(1-d/0.24))));
-        matched.push(value);strokeScores.push(value);
-      }else strokeScores.push(0);
+      const d=j>=0&&j<expected.length?costs[i][j]:0.28;
+      scores.push(Math.max(0,Math.min(100,Math.round(100*(1-d/0.28))));
     }
-    // Missing or extra strokes reduce the score, but their sequence never does.
-    const shape=matched.reduce((a,b)=>a+b,0)/size;
+    const shape=scores.reduce((a,b)=>a+b,0)/n;
     const ratioActual=aw/ah,ratioExpected=ew/eh;
     const ratioError=Math.abs(Math.log(Math.max(.001,ratioActual/ratioExpected)));
     const proportionScore=Math.max(0,100*(1-ratioError/1.2));
@@ -396,10 +434,10 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     const notes=[];
     if(userStrokes.length<expected.length)notes.push('Не хватает черт: ожидалось '+expected.length+', написано '+userStrokes.length+'.');
     if(userStrokes.length>expected.length)notes.push('Лишние черты: ожидалось '+expected.length+', написано '+userStrokes.length+'.');
-    const weak=strokeScores.filter(v=>v<55).length;
+    const weak=scores.filter(v=>v<55).length;
     if(weak)notes.push('У '+weak+' черт контур заметно отличается от ближайшего эталона.');
-    if(!notes.length)notes.push('Форма и пропорции совпадают с эталоном. Порядок черт при оценке не учитывается.');
-    return {score,strokeScores,expectedCount:expected.length,actualCount:userStrokes.length,notes,proportionScore:Math.round(proportionScore)};
+    if(!notes.length)notes.push('Форма и пропорции похожи на эталон. Порядок черт не влияет на оценку.');
+    return {score,strokeScores:scores,expectedCount:expected.length,actualCount:userStrokes.length,notes,proportionScore:Math.round(proportionScore)};
   }
   function createReference2(host,ch){
     host.innerHTML='';
