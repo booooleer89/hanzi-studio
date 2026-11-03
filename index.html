@@ -54,6 +54,7 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 <div id="quiz-target"><div class="quiz-loading">Подготавливаю поле для письма…</div></div>
 <div class="actions"><button class="btn" id="clear">Начать слово заново</button><button class="btn" id="skip-character" hidden>Пропустить иероглиф</button></div>
 <div class="feedback" id="feedback">Загружаю слова…</div><div class="quiz-score" id="quiz-score"></div>
+<div class="hidden" id="selfRate"><button id="markRight" type="button"></button><button id="markWrong" type="button"></button></div>
 </div>
 <div class="next"><span class="muted" id="accuracy" style="font-size:12px">Верно: 0 · Повторить: 0</span><button class="btn primary" id="next">Следующее слово →</button></div>
 </div>
@@ -104,7 +105,7 @@ load();save();
 (function(){
   var el = function(id){ return document.getElementById(id); };
   var quizWriter2 = null, quizChars2 = [], quizPos2 = 0;
-  var quizMistakes2 = 0, quizCorrect2 = 0, quizUnverified2 = 0;
+  var quizMistakes2 = 0, quizFirstTry2 = 0, quizStrokeTotal2 = 0, quizUnverified2 = 0;
   var quizGeneration2 = 0, quizTimer2 = null, wordFinished2 = false;
 
   function cancelCurrent2(){
@@ -122,13 +123,13 @@ load();save();
     cancelCurrent2();
     el('skip-character').hidden = true;
     var checked = quizCorrect2 + quizMistakes2;
-    var accuracy = checked ? Math.round(quizCorrect2 / checked * 100) : 0;
+    var accuracy = quizStrokeTotal2 ? Math.round(quizFirstTry2 / quizStrokeTotal2 * 100) : 0;
     var perfect = quizMistakes2 === 0 && quizUnverified2 === 0;
     rate(perfect);
     el('feedback').textContent = perfect
       ? 'Слово пройдено без ошибок. Отличная работа!'
       : 'Слово завершено. Посмотри, какие черты пришлось исправлять.';
-    el('quiz-score').textContent = 'Точность с первой попытки: ' + accuracy + '% · Ошибок: ' + quizMistakes2 + (quizUnverified2 ? ' · Не проверено: ' + quizUnverified2 : '');
+    el('quiz-score').textContent = 'Черты с первой попытки: ' + accuracy + '% · Ошибок: ' + quizMistakes2 + (quizUnverified2 ? ' · Иероглифов пропущено: ' + quizUnverified2 : '');
     el('quiz-stroke-index').textContent = 'Слово завершено';
   }
   function nextCharacter2(){
@@ -169,9 +170,10 @@ load();save();
         highlightColor: '#ad5045',
         strokeAnimationSpeed: 1.2,
         showHintAfterMisses: 2,
-        onLoadCharDataSuccess: function(){
+        onLoadCharDataSuccess: function(data){
           if(generation !== quizGeneration2) return;
-          el('feedback').textContent = 'Начинай писать. Сайт проверяет каждую черту по ходу написания.';
+          quizStrokeTotal2 += (data && data.strokes ? data.strokes.length : 0);
+          el('feedback').textContent = 'Начинай писать. Сайт проверяет форму и порядок каждой черты.';
           el('quiz-stroke-index').textContent = 'Жду первую черту';
         },
         onLoadCharDataError: function(){
@@ -197,12 +199,12 @@ load();save();
         },
         onCorrectStroke: function(data){
           if(generation !== quizGeneration2) return;
-          quizCorrect2++;
+          if((data.mistakesOnStroke || 0) === 0) quizFirstTry2++;
           var strokeNo = (data.strokeNum || 0) + 1;
           var total = strokeNo + (data.strokesRemaining || 0);
           el('quiz-stroke-index').textContent = 'Черта ' + strokeNo + ' из ' + total + ' принята';
           el('feedback').textContent = 'Верно. Продолжай следующую черту.';
-          el('quiz-score').textContent = 'Принято черт: ' + quizCorrect2 + ' · Ошибок: ' + quizMistakes2;
+          el('quiz-score').textContent = 'Без ошибок с первой попытки: ' + quizFirstTry2 + ' · Всего черт: ' + quizStrokeTotal2 + ' · Ошибок: ' + quizMistakes2;
         },
         onComplete: function(){
           if(generation !== quizGeneration2) return;
@@ -232,7 +234,8 @@ load();save();
     });
     quizPos2 = 0;
     quizMistakes2 = 0;
-    quizCorrect2 = 0;
+    quizFirstTry2 = 0;
+    quizStrokeTotal2 = 0;
     quizUnverified2 = 0;
     wordFinished2 = false;
     el('quiz-score').textContent = '';
