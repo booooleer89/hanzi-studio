@@ -59,7 +59,7 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 <main>
 <section id="practice">
 <h1>Практика письма</h1><div class="sub">Сначала напиши слово по памяти. Проверка появится только после сохранения.</div>
-<div class="toolbar"><select id="level"><option value="1">HSK 1 · 300</option><option value="2">HSK 2 · 500</option><option value="3">HSK 3 · 1 000</option><option value="4">HSK 4 · 2 000</option><option value="5">HSK 5 · 3 600</option><option value="6">HSK 6 · 5 400</option><option value="7-9">HSK 7–9 · 5 600</option><option value="all">Все уровни · 11 000</option></select>
+<div class="toolbar"><select id="level"><option value="1">HSK 1</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option><option value="5">HSK 5</option><option value="6">HSK 6</option><option value="7-9">HSK 7–9</option><option value="all">Все уровни</option></select>
 <select id="mode"><option value="sequence" selected>По алфавиту (пиньинь)</option><option value="random">Случайный порядок</option><option value="mistakes">Мои ошибки</option></select><button class="btn" id="skip">Пропустить</button><button class="btn" id="reload-words">Обновить слова</button></div>
 <div class="card">
 <div class="head"><span id="counter">Подготовка словаря</span><span id="leveltag">HSK 1</span></div>
@@ -80,11 +80,10 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 </div>
 <div class="next"><span class="muted" id="accuracy" style="font-size:12px">Слова: 0 · Повторить: 0</span><button class="btn primary" id="next">Следующее слово →</button></div>
 </div>
-<div class="notice">Сначала ты пишешь самостоятельно — сайт не показывает контур и не исправляет тебя в процессе. После нажатия «Сохранить и проверить» сравниваются записанные траектории с эталонными чертами: примерная похожесть формы, пропорции, количество и порядок. Это геометрическая проверка по базе черт, не AI-распознавание свободного текста; результаты могут быть приблизительными.</div>
+<div class="notice">Сначала ты пишешь самостоятельно — сайт не показывает контур и не исправляет тебя в процессе. После отправки сравниваются форма и пропорции. Порядок черт не влияет на процент. В словаре используются русские словарные статьи из файлов Chinese+ для Anki.</div>
 </section>
-<section id="words" class="hidden"><h1>Словарь HSK</h1><div class="sub">Список HSK 3.0: поиск по иероглифам, пиньиню и русскому переводу. Сортировка по пиньиню.</div>
-<div style="margin:-10px 0 14px;font-size:13px"><a href="https://chineseplus.club/hsk/3/table/" target="_blank" rel="noopener noreferrer">Открыть актуальный список HSK 3.0 2026 с русскими переводами в Chinese+</a></div>
-<div class="toolbar"><select id="wordlevel"><option value="all">Все уровни · 11 000</option><option value="1">HSK 1 · 300</option><option value="2">HSK 2 · 500</option><option value="3">HSK 3 · 1 000</option><option value="4">HSK 4 · 2 000</option><option value="5">HSK 5 · 3 600</option><option value="6">HSK 6 · 5 400</option><option value="7-9">HSK 7–9 · 5 600</option></select><input id="search" placeholder="По-китайски, пиньиню или по-русски"></div>
+<section id="words" class="hidden"><h1>Словарь HSK</h1><div class="sub">Полный словарь HSK 3.0 с русскими словарными значениями. Поиск по иероглифам, пиньиню и русскому переводу.</div>
+<div class="toolbar"><select id="wordlevel"><option value="all">Все уровни</option><option value="1">HSK 1</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option><option value="5">HSK 5</option><option value="6">HSK 6</option><option value="7-9">HSK 7–9</option></select><input id="search" placeholder="По-китайски, пиньиню или по-русски"></div>
 <div class="muted" id="translation-coverage" style="font-size:12px;margin:-5px 0 12px"></div>
 <div class="muted" id="wordcount"></div>
 <div style="overflow:auto;margin-top:10px"><table><thead><tr><th>Слово</th><th>Пиньинь</th><th>Уровень</th><th>Перевод</th></tr></thead><tbody id="wordrows"></tbody></table></div>
@@ -97,11 +96,9 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 </main></div></div>
 <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.7.2/dist/hanzi-writer.min.js"></script>
 <script>
-const CSV_URL='https://raw.githubusercontent.com/uranbekanarbaev/hsk-3.0-vocabulary-dataset/main/data/hsk-3.0-all.csv';
-const DICT_CACHE_KEY='hanzi-csv-hsk3-11000-v2';
-const RU_GLOSSARY_URL='https://raw.githubusercontent.com/LiudmilaLV/json_hsk/master/hsk.json';
+const TRANSLATIONS_URL='./hsk-russian.json';
 const $=id=>document.getElementById(id);
-let ruGlossary={},words=[],queue=[],index=0,current=null,currentWordPage=0,stats=JSON.parse(localStorage.getItem('hanzi-stats')||'{}'),mistakes=JSON.parse(localStorage.getItem('hanzi-mistakes')||'[]');
+let words=[],queue=[],index=0,current=null,currentWordPage=0,stats=JSON.parse(localStorage.getItem('hanzi-stats')||'{}'),mistakes=JSON.parse(localStorage.getItem('hanzi-mistakes')||'[]');
 function parseCSV(s){let rows=[],row=[],v='',q=false;for(let i=0;i<s.length;i++){let c=s[i];if(c==='"'){if(q&&s[i+1]==='"'){v+='"';i++}else q=!q}else if(c===','&&!q){row.push(v);v=''}else if((c==='\n'||c==='\r')&&!q){if(c==='\r'&&s[i+1]==='\n')i++;row.push(v);if(row.some(x=>x.trim()))rows.push(row);row=[];v=''}else v+=c}row.push(v);if(row.some(x=>x.trim()))rows.push(row);return rows}
 function pinyinSortKey(s){return (s||'').toLowerCase().normalize('NFD').replace(/u\u0308/g,'v').replace(/[\u0300-\u036f]/g,'');}
 function sortByPinyin(list){return list.sort((a,b)=>pinyinSortKey(a.pinyin).localeCompare(pinyinSortKey(b.pinyin),'en')||a.word.localeCompare(b.word,'zh'))}
@@ -122,39 +119,30 @@ function convert(rows){
  return sortByPinyin(result);
 }
 async function load(forceFresh){
- $('status').textContent='Загрузка списка HSK 3.0…';
- $('feedback').textContent='Загружаю слова…';
+ $('status').textContent='Загрузка HSK со всеми русскими переводами…';
+ $('feedback').textContent='Загружаю словарь…';
  try{
-   let csv=null,parsed=[];
-   if(!forceFresh){
-     try{csv=localStorage.getItem(DICT_CACHE_KEY)}catch(e){}
-     if(csv){
-       try{parsed=convert(parseCSV(csv));if(parsed.length!==11000)throw Error('Cached HSK dataset is incomplete');}
-       catch(e){csv=null;parsed=[];}
-     }
-   }
-   if(!csv){
-     let response=await fetch(CSV_URL,{cache:'no-store'});
-     if(!response.ok)throw Error('Dictionary download failed: '+response.status);
-     csv=await response.text();
-     parsed=convert(parseCSV(csv));
-     if(parsed.length!==11000)throw Error('Expected 11,000 HSK 3.0 records, got '+parsed.length);
-     try{localStorage.setItem(DICT_CACHE_KEY,csv)}catch(e){}
-   }
-   words=parsed;
-   try{ruGlossary=await loadRussianGlossary();}catch(err){console.warn('Russian glossary unavailable',err);ruGlossary={};}
-   words.forEach(w=>{
-     if(!w.translation&&ruGlossary[w.word]){w.translation=ruGlossary[w.word];w.translationSource='ru-dictionary';}
-   });
-   $('status').textContent='11 000 слов HSK 3.0';
+   const response=await fetch(TRANSLATIONS_URL+(forceFresh?'?v='+Date.now():''),{cache:forceFresh?'no-store':'default'});
+   if(!response.ok)throw Error('Файл hsk-russian.json не найден ('+response.status+')');
+   const entries=await response.json();
+   if(!Array.isArray(entries)||entries.length<10000)throw Error('Словарь неполный: '+(entries&&entries.length||0)+' записей');
+   words=entries.map(x=>({
+     word:String(x.w||'').normalize('NFC'),
+     pinyin:String(x.p||''),
+     level:String(x.l||''),
+     translation:String(x.t||'')
+   })).filter(x=>x.word&&x.pinyin&&x.level);
+   if(words.length<10000||words.some(x=>!x.translation))throw Error('В словаре есть записи без русского перевода');
+   sortByPinyin(words);
+   $('status').textContent=words.length.toLocaleString('ru-RU')+' слов · переводы готовы';
    currentWordPage=0;
    build();
  }catch(e){
    console.error('Hanzi Studio dictionary error',e);
    words=[];queue=[];
-   $('status').textContent='Ошибка загрузки словаря';
-   $('feedback').textContent='Список HSK 3.0 не загрузился. Нажми «Обновить слова» и проверь интернет.';
-   $('counter').textContent='Не удалось загрузить слова';
+   $('status').textContent='Не загружен файл переводов';
+   $('feedback').textContent='Добавь файл hsk-russian.json в корень GitHub-репозитория рядом с index.html, затем обнови страницу.';
+   $('counter').textContent='Ожидаю файл с русскими переводами';
  }
 }
 function levelMatch(w,l){
@@ -200,42 +188,15 @@ $('showtranslation').onclick=()=>{
  let e=$('translation'),b=$('showtranslation');
  if(!e.classList.contains('hidden')){e.classList.add('hidden');b.textContent='Показать перевод';return;}
  e.classList.remove('hidden');b.textContent='Скрыть перевод';
- e.innerHTML='';
- if(current&&current.translation){e.textContent=current.translation;return;}
- if(!current)return;
- const a=document.createElement('a');
- a.href='https://chineseplus.club/search/?q='+encodeURIComponent(current.word);
- a.target='_blank';a.rel='noopener noreferrer';
- a.textContent='Открыть подробный русский перевод в Chinese+ для «'+current.word+'»';
- e.appendChild(a);
+ e.textContent=current&&current.translation?current.translation:'Перевод отсутствует в словаре.';
 };
 $('next').onclick=()=>{index++;show()};
 $('skip').onclick=()=>{index++;show()};
 $('level').onchange=build;$('mode').onchange=build;$('clear').onclick=clearCanvas;
 // Рукописную проверку запускает блок Hanzi Writer ниже.
-async function loadRussianGlossary(){
- const key='hanzi-ru-glossary-v1';
- try{
-   const cached=localStorage.getItem(key);
-   if(cached){const map=JSON.parse(cached);if(map&&Object.keys(map).length>500)return map;}
- }catch(e){}
- const response=await fetch(RU_GLOSSARY_URL,{cache:'force-cache'});
- if(!response.ok)throw new Error('Russian glossary HTTP '+response.status);
- const entries=await response.json();
- if(!Array.isArray(entries))throw new Error('Invalid Russian glossary');
- const map={};
- entries.forEach(entry=>{
-   const raw=entry&&entry.translations&&entry.translations.rus;
-   const meaning=Array.isArray(raw)?raw.filter(Boolean).join('; '):(typeof raw==='string'?raw:'');
-   if(entry&&entry.hanzi&&meaning)map[entry.hanzi]=meaning;
- });
- try{localStorage.setItem(key,JSON.stringify(map));}catch(e){}
- return map;
-}
 
 function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function progress(){$('s-total').textContent=stats.total||0;$('s-right').textContent=stats.right||0;$('s-rate').textContent=(stats.total?Math.round((stats.right||0)/stats.total*100):0)+'%';$('mistake-list').innerHTML=mistakes.length?mistakes.map(w=>'<span style="font-size:20px;margin:4px">'+esc(w)+'</span>').join(''):'Ошибок пока нет.'}
-function chinesePlusUrl(word){return 'https://chineseplus.club/search/?q='+encodeURIComponent(word);}
 function renderWords(){
  let l=$('wordlevel').value,q=$('search').value.trim().toLocaleLowerCase('ru-RU'),
  a=words.filter(w=>levelMatch(w,l)&&(!q||w.word.toLocaleLowerCase().includes(q)||w.pinyin.toLocaleLowerCase().includes(q)||(w.translation||'').toLocaleLowerCase('ru-RU').includes(q)));
@@ -245,9 +206,9 @@ function renderWords(){
  const start=currentWordPage*pageSize,end=Math.min(start+pageSize,a.length);
  $('wordcount').textContent=a.length.toLocaleString('ru-RU')+' слов · '+(a.length?('показаны '+(start+1)+'–'+end):'ничего не найдено');
  const ruCount=words.filter(w=>!!w.translation).length;
- $('translation-coverage').textContent='Локальные русские значения есть у '+ruCount.toLocaleString('ru-RU')+' из '+words.length.toLocaleString('ru-RU')+' записей. Для остальных открывается подробный поиск в Chinese+.';
+ $('translation-coverage').textContent='Русский перевод встроен у '+ruCount.toLocaleString('ru-RU')+' из '+words.length.toLocaleString('ru-RU')+' слов.';
  $('wordrows').innerHTML=a.slice(start,end).map(w=>{
-   const cell=w.translation?esc(w.translation):'<a class="btn" style="display:inline-block;padding:5px 8px;font-size:12px;text-decoration:none" href="'+chinesePlusUrl(w.word)+'" target="_blank" rel="noopener noreferrer">Русский перевод</a>';
+   const cell=esc(w.translation||'Перевод не найден');
    return '<tr><td>'+esc(w.word)+'</td><td>'+esc(w.pinyin)+'</td><td>HSK '+esc(w.level)+'</td><td>'+cell+'</td></tr>';
  }).join('');
  $('word-prev').disabled=currentWordPage===0;
