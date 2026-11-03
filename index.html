@@ -175,8 +175,7 @@ function renderWords(){
 }
 $('wordlevel').onchange=renderWords;$('search').oninput=renderWords;$('reload-words').onclick=()=>load(true);$('reset').onclick=()=>{if(confirm('Сбросить статистику?')){stats={};mistakes=[];save();progress()}};
 document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));b.classList.add('active');['practice','words','progress'].forEach(id=>$(id).classList.toggle('hidden',id!==b.dataset.view));if(b.dataset.view==='words')renderWords();if(b.dataset.view==='progress')progress()});
-const cv=$('writing'),ctx=cv.getContext('2d');let down=false;function point(e){let r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*cv.width/r.width,y:(e.clientY-r.top)*cv.height/r.height}}
-cv.onpointerdown=e=>{down=true;cv.setPointerCapture(e.pointerId);let p=point(e);ctx.beginPath();ctx.moveTo(p.x,p.y)};cv.onpointermove=e=>{if(!down)return;let p=point(e);ctx.lineTo(p.x,p.y);ctx.stroke()};cv.onpointerup=cv.onpointercancel=()=>down=false;
+// Старый Canvas удалён: рукописный ввод теперь обрабатывает Hanzi Writer.
 load();save();
 </script>
 
