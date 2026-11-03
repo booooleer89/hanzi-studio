@@ -132,7 +132,7 @@ function show(){
    $('feedback').textContent='В этом фильтре пока нет слов.';
    $('analysis-panel').classList.add('hidden');
    $('submit-writing').disabled=true;
-   $('next').disabled=true;
+   $('next').disabled=false;
    clearCanvas();
    return;
  }
@@ -148,7 +148,7 @@ function show(){
  $('feedback').style.color='';
  $('analysis-panel').classList.add('hidden');
  $('submit-writing').disabled=false;
- $('next').disabled=true;
+ $('next').disabled=false;
  $('skip').disabled=false;
  clearCanvas();
 }
@@ -170,7 +170,7 @@ $('showtranslation').onclick=async()=>{
    if(current && current.word===word)e.textContent='Сервис перевода временно недоступен. Попробуй ещё раз позже.';
  }
 };
-$('next').onclick=()=>{if(!$('next').disabled){index++;show()}};
+$('next').onclick=()=>{index++;show()};
 $('skip').onclick=()=>{index++;show()};
 $('level').onchange=build;$('mode').onchange=build;$('clear').onclick=clearCanvas;
 // Рукописную проверку запускает блок Hanzi Writer ниже.
@@ -321,14 +321,49 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     return d/aa.length/GRID;
   }
   function reverse2(points){return points.slice().reverse();}
+  function strokeAssignment2(costs){
+    const n=costs.length;
+    if(!n)return [];
+    const u=new Array(n+1).fill(0),v=new Array(n+1).fill(0);
+    const p=new Array(n+1).fill(0),way=new Array(n+1).fill(0);
+    for(let row=1;row<=n;row++){
+      p[0]=row;
+      let col0=0;
+      const minv=new Array(n+1).fill(Infinity),used=new Array(n+1).fill(false);
+      do{
+        used[col0]=true;
+        const row0=p[col0];
+        let delta=Infinity,col1=0;
+        for(let col=1;col<=n;col++){
+          if(used[col])continue;
+          const cur=costs[row0-1][col-1]-u[row0]-v[col];
+          if(cur<minv[col]){minv[col]=cur;way[col]=col0;}
+          if(minv[col]<delta){delta=minv[col];col1=col;}
+        }
+        for(let col=0;col<=n;col++){
+          if(used[col]){u[p[col]]+=delta;v[col]-=delta;}
+          else minv[col]-=delta;
+        }
+        col0=col1;
+      }while(p[col0]!==0);
+      do{
+        const col1=way[col0];
+        p[col0]=p[col1];
+        col0=col1;
+      }while(col0!==0);
+    }
+    const result=new Array(n).fill(-1);
+    for(let col=1;col<=n;col++)if(p[col])result[p[col]-1]=col-1;
+    return result;
+  }
   function scoreCharacter2(userStrokes,charData){
     const medians=charData&&charData.medians;
     if(!Array.isArray(medians)||!medians.length)return {unavailable:true,score:0,notes:['Для этого иероглифа нет эталонных траекторий.']};
-    const expected=medians.map(stroke=>stroke.map(p=>[Number(p[0]),GRID-Number(p[1])]));
+    // Hanzi Writer coordinates use y=900 at the top and y=-124 at the bottom.
+    const expected=medians.map(stroke=>stroke.map(p=>[Number(p[0]),900-Number(p[1])]));
     const expectedBounds=getBounds2(expected),actualBounds=getBounds2(userStrokes);
     if(!actualBounds||!userStrokes.length)return {
-      score:0,firstTry:0,expectedCount:expected.length,actualCount:0,orderNotes:[],
-      notes:['Ты пока не нарисовала этот иероглиф.']
+      score:0,expectedCount:expected.length,actualCount:0,notes:['Ты пока не нарисовала этот иероглиф.']
     };
     const aw=Math.max(1,actualBounds.maxX-actualBounds.minX),ah=Math.max(1,actualBounds.maxY-actualBounds.minY);
     const ew=Math.max(1,expectedBounds.maxX-expectedBounds.minX),eh=Math.max(1,expectedBounds.maxY-expectedBounds.minY);
@@ -336,40 +371,35 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     const acx=(actualBounds.minX+actualBounds.maxX)/2,acy=(actualBounds.minY+actualBounds.maxY)/2;
     const ecx=(expectedBounds.minX+expectedBounds.maxX)/2,ecy=(expectedBounds.minY+expectedBounds.maxY)/2;
     const fitted=userStrokes.map(stroke=>stroke.map(p=>[(p[0]-acx)*scale+ecx,(p[1]-acy)*scale+ecy]));
-    const matrix=fitted.map(s=>expected.map(t=>pathCost2(s,t)));
-    const strokeScores=[],orderNotes=[],usedExpected=new Set();
-    let sum=0;
+    const size=Math.max(fitted.length,expected.length);
+    const costs=Array.from({length:size},(_,i)=>Array.from({length:size},(_,j)=>{
+      if(i>=fitted.length||j>=expected.length)return 0.30;
+      // A stroke may be matched to any expected stroke. Drawing order and direction are ignored.
+      return Math.min(pathCost2(fitted[i],expected[j]),pathCost2(reverse2(fitted[i]),expected[j]));
+    }));
+    const assignment=strokeAssignment2(costs);
+    const matched=[],strokeScores=[];
     for(let i=0;i<fitted.length;i++){
-      const direct=(i<expected.length)?matrix[i][i]:1;
-      const rev=(i<expected.length)?pathCost2(reverse2(fitted[i]),expected[i]):1;
-      let bestIndex=0,bestCost=Infinity;
-      for(let j=0;j<expected.length;j++){if(matrix[i][j]<bestCost){bestCost=matrix[i][j];bestIndex=j;}}
-      let d=direct,reverseFlag=false;
-      if(rev+0.025<d){d=rev;reverseFlag=true;}
-      const strokeScore=Math.max(0,Math.min(100,Math.round(100*(1-d/0.24))));
-      strokeScores.push(strokeScore);sum+=strokeScore;
-      if(i<expected.length)usedExpected.add(i);
-      if(reverseFlag&&rev<0.17)orderNotes.push('Черта №'+(i+1)+' похожа на правильную, но направление, возможно, обратное.');
-      else if(bestIndex!==i&&bestCost<0.13&&bestCost+0.035<direct){
-        orderNotes.push('Черта №'+(i+1)+' больше похожа на эталонную черту №'+(bestIndex+1)+'. Возможно, нарушен порядок.');
-      } else if(i<expected.length&&direct>0.18&&strokeScore<25){
-        orderNotes.push('Форма черты №'+(i+1)+' заметно отличается от эталона.');
-      }
+      const j=assignment[i];
+      if(j>=0&&j<expected.length){
+        const d=costs[i][j];
+        const value=Math.max(0,Math.min(100,Math.round(100*(1-d/0.24))));
+        matched.push(value);strokeScores.push(value);
+      }else strokeScores.push(0);
     }
-    const shape=strokeScores.length?sum/strokeScores.length:0;
+    // Missing or extra strokes reduce the score, but their sequence never does.
+    const shape=matched.reduce((a,b)=>a+b,0)/size;
     const ratioActual=aw/ah,ratioExpected=ew/eh;
     const ratioError=Math.abs(Math.log(Math.max(.001,ratioActual/ratioExpected)));
     const proportionScore=Math.max(0,100*(1-ratioError/1.2));
-    const coverage=Math.min(userStrokes.length,expected.length)/Math.max(userStrokes.length,expected.length);
-    const score=Math.round((shape*.85+proportionScore*.15)*(.75+.25*coverage));
+    const score=Math.round(shape*.90+proportionScore*.10);
     const notes=[];
-    if(userStrokes.length<expected.length)notes.push('Недостаёт черт: ожидалось '+expected.length+', написано '+userStrokes.length+'.');
+    if(userStrokes.length<expected.length)notes.push('Не хватает черт: ожидалось '+expected.length+', написано '+userStrokes.length+'.');
     if(userStrokes.length>expected.length)notes.push('Лишние черты: ожидалось '+expected.length+', написано '+userStrokes.length+'.');
-    if(orderNotes.length)notes.push(...orderNotes);
-    if(!notes.length)notes.push('Явных ошибок порядка не обнаружено.');
-    const weak=strokeScores.map((v,i)=>({v:v,i:i})).filter(x=>x.v<55);
-    weak.slice(0,4).forEach(x=>notes.push('Черта №'+(x.i+1)+': контур отличается от образца ('+x.v+'%).'));
-    return {score,strokeScores,expectedCount:expected.length,actualCount:userStrokes.length,orderNotes,notes,proportionScore:Math.round(proportionScore)};
+    const weak=strokeScores.filter(v=>v<55).length;
+    if(weak)notes.push('У '+weak+' черт контур заметно отличается от ближайшего эталона.');
+    if(!notes.length)notes.push('Форма и пропорции совпадают с эталоном. Порядок черт при оценке не учитывается.');
+    return {score,strokeScores,expectedCount:expected.length,actualCount:userStrokes.length,notes,proportionScore:Math.round(proportionScore)};
   }
   function createReference2(host,ch){
     host.innerHTML='';
@@ -392,14 +422,6 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     const notes=document.createElement('div');notes.className='result-notes';
     notes.textContent=(result.notes||[]).join(' ');
     card.appendChild(notes);
-    const animation=document.createElement('button');animation.className='btn result-order';animation.textContent='Показать правильный порядок черт';
-    let referenceWriter=null;
-    animation.onclick=()=>{
-      if(!referenceWriter){referenceWriter=createReference2(reference,ch);}
-      if(referenceWriter&&typeof referenceWriter.animateCharacter==='function')referenceWriter.animateCharacter();
-      animation.textContent='Повторить порядок черт';
-    };
-    card.appendChild(animation);
     if(!result.unavailable)createReference2(reference,ch);
     return card;
   }
@@ -431,13 +453,11 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
       });
       const usable=results.filter(x=>!x.result.unavailable);
       const overall=usable.length?Math.round(usable.reduce((a,x)=>a+x.result.score,0)/usable.length):0;
-      const orderIssues=results.reduce((n,x)=>n+(x.result.orderNotes?x.result.orderNotes.length:0),0);
-      const unavailable=results.length-usable.length;
-      const success=usable.length===results.length&&overall>=78&&orderIssues===0&&usable.every(x=>x.result.actualCount===x.result.expectedCount);
+      const success=usable.length===results.length&&overall>=78&&usable.every(x=>x.result.actualCount===x.result.expectedCount);
       const summary=$2('analysis-summary');
       summary.textContent='Общее сходство формы: '+overall+'%. '+
-        (success?'Слово написано близко к эталону, заметных ошибок порядка не найдено.':
-        'Проверь разбор каждого иероглифа ниже. Ошибки не исправлялись во время письма — анализ появился только после отправки.');
+        (success?'Форма слова близка к эталону. Порядок черт не учитывался.':
+        'Проверь форму, пропорции и количество черт в разборе ниже. Порядок черт не влияет на процент.');
       const resultList=$2('result-list');resultList.innerHTML='';
       results.forEach((item,i)=>resultList.appendChild(buildCharResult2(item.character,i,item.result)));
       $2('analysis-panel').classList.remove('hidden');
