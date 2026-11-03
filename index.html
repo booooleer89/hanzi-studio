@@ -24,7 +24,7 @@ select,input{border:1px solid var(--line);background:white;padding:10px 12px;bor
 .actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.actions .primary{flex:1}.feedback{text-align:center;min-height:28px;margin:12px 0;color:var(--muted);font-size:13px}
 #result-list{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:15px auto 0;max-width:760px}
 .result-char{border:1px solid var(--line);border-radius:10px;padding:12px;background:#fff}
-#result-compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 12px}
+.result-compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 12px}
 .result-preview-panel{min-width:0;text-align:center}
 .result-preview-label{font-size:11px;color:var(--muted);margin-bottom:5px}
 .result-preview-box{width:100%;aspect-ratio:1;border:1px solid var(--line);border-radius:9px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center}
@@ -48,7 +48,7 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 
 .analysis-caption{font-size:12px;color:var(--muted);margin:7px 0}
 #retry-writing{margin-top:10px}
-@media(max-width:700px){#writing-panels{grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px}.result-reference{width:88px;height:88px;flex-basis:88px}#result-compare{gap:7px}.result-preview-label{font-size:10px}}
+@media(max-width:700px){#writing-panels{grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px}.result-reference{width:88px;height:88px;flex-basis:88px}.result-compare{gap:7px}.result-preview-label{font-size:10px}}
 </style>
 </head>
 <body>
@@ -102,7 +102,7 @@ const RU_GLOSSARY_URL='https://raw.githubusercontent.com/LiudmilaLV/json_hsk/mas
 const $=id=>document.getElementById(id);
 let ruGlossary={},words=[],queue=[],index=0,current=null,currentWordPage=0,stats=JSON.parse(localStorage.getItem('hanzi-stats')||'{}'),mistakes=JSON.parse(localStorage.getItem('hanzi-mistakes')||'[]');
 function parseCSV(s){let rows=[],row=[],v='',q=false;for(let i=0;i<s.length;i++){let c=s[i];if(c==='"'){if(q&&s[i+1]==='"'){v+='"';i++}else q=!q}else if(c===','&&!q){row.push(v);v=''}else if((c==='\n'||c==='\r')&&!q){if(c==='\r'&&s[i+1]==='\n')i++;row.push(v);if(row.some(x=>x.trim()))rows.push(row);row=[];v=''}else v+=c}row.push(v);if(row.some(x=>x.trim()))rows.push(row);return rows}
-function pinyinSortKey(s){return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/ü/g,'u');}
+function pinyinSortKey(s){return (s||'').toLowerCase().normalize('NFD').replace(/u\u0308/g,'v').replace(/[\u0300-\u036f]/g,'');}
 function sortByPinyin(list){return list.sort((a,b)=>pinyinSortKey(a.pinyin).localeCompare(pinyinSortKey(b.pinyin),'en')||a.word.localeCompare(b.word,'zh'))}
 function convert(rows){
  let h=rows.shift().map(x=>x.replace(/^\uFEFF/,'').trim().toLowerCase());
