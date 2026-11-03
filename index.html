@@ -22,14 +22,15 @@ select,input{border:1px solid var(--line);background:white;padding:10px 12px;bor
 .write-canvas{width:100%;aspect-ratio:1;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;background-color:#fff;background-image:linear-gradient(to right,transparent calc(50% - .5px),#f0f0ec 50%,transparent calc(50% + .5px)),linear-gradient(to bottom,transparent calc(50% - .5px),#f0f0ec 50%,transparent calc(50% + .5px))}
 .write-canvas:disabled{opacity:.86}
 .actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.actions .primary{flex:1}.feedback{text-align:center;min-height:28px;margin:12px 0;color:var(--muted);font-size:13px}
-#result-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:15px}
+#result-list{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:15px auto 0;max-width:760px}
 .result-char{border:1px solid var(--line);border-radius:10px;padding:12px;background:#fff}
-#result-compare{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
+#result-compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 12px}
 .result-preview-panel{min-width:0;text-align:center}
 .result-preview-label{font-size:11px;color:var(--muted);margin-bottom:5px}
 .result-preview-box{width:100%;aspect-ratio:1;border:1px solid var(--line);border-radius:9px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center}
 .result-preview-box canvas{width:100%;height:100%;display:block;border:0;touch-action:auto}
 .result-preview-box svg{width:100%;height:100%}
+.printed-glyph{font:76px/1.1 "Noto Serif CJK SC","Songti SC","STSong",serif;color:#252621;display:flex;align-items:center;justify-content:center;width:100%;height:100%;text-align:center}
 .result-animation{display:none;margin:8px auto;width:140px;height:140px}
 .result-animation.visible{display:block}
 .result-char-top{display:flex;gap:12px;align-items:center}
@@ -47,7 +48,6 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 
 .analysis-caption{font-size:12px;color:var(--muted);margin:7px 0}
 #retry-writing{margin-top:10px}
-@media(max-width:1100px){#result-list{grid-template-columns:1fr}}
 @media(max-width:700px){#writing-panels{grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px}.result-reference{width:88px;height:88px;flex-basis:88px}#result-compare{gap:7px}.result-preview-label{font-size:10px}}
 </style>
 </head>
@@ -59,7 +59,7 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 <main>
 <section id="practice">
 <h1>Практика письма</h1><div class="sub">Сначала напиши слово по памяти. Проверка появится только после сохранения.</div>
-<div class="toolbar"><select id="level"><option value="1">HSK 1</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option><option value="5">HSK 5</option><option value="6">HSK 6</option><option value="7-9">HSK 7–9</option><option value="all">Все уровни</option></select>
+<div class="toolbar"><select id="level"><option value="1">HSK 1 · 300</option><option value="2">HSK 2 · 500</option><option value="3">HSK 3 · 1 000</option><option value="4">HSK 4 · 2 000</option><option value="5">HSK 5 · 3 600</option><option value="6">HSK 6 · 5 400</option><option value="7-9">HSK 7–9 · 11 000</option><option value="all">Все уровни · 11 000</option></select>
 <select id="mode"><option value="sequence" selected>По алфавиту (пиньинь)</option><option value="random">Случайный порядок</option><option value="mistakes">Мои ошибки</option></select><button class="btn" id="skip">Пропустить</button><button class="btn" id="reload-words">Обновить слова</button></div>
 <div class="card">
 <div class="head"><span id="counter">Подготовка словаря</span><span id="leveltag">HSK 1</span></div>
@@ -83,7 +83,7 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 <div class="notice">Сначала ты пишешь самостоятельно — сайт не показывает контур и не исправляет тебя в процессе. После нажатия «Сохранить и проверить» сравниваются записанные траектории с эталонными чертами: примерная похожесть формы, пропорции, количество и порядок. Это геометрическая проверка по базе черт, не AI-распознавание свободного текста; результаты могут быть приблизительными.</div>
 </section>
 <section id="words" class="hidden"><h1>Словарь HSK</h1><div class="sub">Полный список HSK 3.0: поиск по иероглифам, пиньиню и русскому переводу. Сортировка по пиньиню.</div>
-<div class="toolbar"><select id="wordlevel"><option value="all">Все уровни</option><option value="1">HSK 1</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option><option value="5">HSK 5</option><option value="6">HSK 6</option><option value="7-9">HSK 7–9</option></select><input id="search" placeholder="По-китайски, пиньиню или по-русски"></div>
+<div class="toolbar"><select id="wordlevel"><option value="all">Все уровни · 11 000</option><option value="1">HSK 1 · 300</option><option value="2">HSK 2 · 500</option><option value="3">HSK 3 · 1 000</option><option value="4">HSK 4 · 2 000</option><option value="5">HSK 5 · 3 600</option><option value="6">HSK 6 · 5 400</option><option value="7-9">HSK 7–9 · 11 000</option></select><input id="search" placeholder="По-китайски, пиньиню или по-русски"></div>
 <div class="muted" id="translation-coverage" style="font-size:12px;margin:-5px 0 12px"></div>
 <div class="muted" id="wordcount"></div>
 <div style="overflow:auto;margin-top:10px"><table><thead><tr><th>Слово</th><th>Пиньинь</th><th>Уровень</th><th>Перевод</th></tr></thead><tbody id="wordrows"></tbody></table></div>
@@ -101,11 +101,11 @@ const DICT_CACHE_KEY='hanzi-csv-hsk3-11000-v2';
 const RU_GLOSSARY_URL='https://raw.githubusercontent.com/LiudmilaLV/json_hsk/master/hsk.json';
 const $=id=>document.getElementById(id);
 let ruGlossary={},words=[],queue=[],index=0,current=null,currentWordPage=0,stats=JSON.parse(localStorage.getItem('hanzi-stats')||'{}'),mistakes=JSON.parse(localStorage.getItem('hanzi-mistakes')||'[]');
-function parseCSV(s){let rows=[],row=[],v='',q=false;for(let i=0;i<s.length;i++){let c=s[i];if(c==='"'){if(q&&s[i+1]==='"'){v+='"';i++}else q=!q}else if(c===','&&!q){row.push(v);v=''}else if((c==='\\n'||c==='\\r')&&!q){if(c==='\\r'&&s[i+1]==='\\n')i++;row.push(v);if(row.some(x=>x.trim()))rows.push(row);row=[];v=''}else v+=c}row.push(v);if(row.some(x=>x.trim()))rows.push(row);return rows}
-function pinyinSortKey(s){return (s||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/ü/g,'u');}
+function parseCSV(s){let rows=[],row=[],v='',q=false;for(let i=0;i<s.length;i++){let c=s[i];if(c==='"'){if(q&&s[i+1]==='"'){v+='"';i++}else q=!q}else if(c===','&&!q){row.push(v);v=''}else if((c==='\n'||c==='\r')&&!q){if(c==='\r'&&s[i+1]==='\n')i++;row.push(v);if(row.some(x=>x.trim()))rows.push(row);row=[];v=''}else v+=c}row.push(v);if(row.some(x=>x.trim()))rows.push(row);return rows}
+function pinyinSortKey(s){return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/ü/g,'u');}
 function sortByPinyin(list){return list.sort((a,b)=>pinyinSortKey(a.pinyin).localeCompare(pinyinSortKey(b.pinyin),'en')||a.word.localeCompare(b.word,'zh'))}
 function convert(rows){
- let h=rows.shift().map(x=>x.replace(/^\\uFEFF/,'').trim().toLowerCase());
+ let h=rows.shift().map(x=>x.replace(/^\uFEFF/,'').trim().toLowerCase());
  let ix=(...a)=>h.findIndex(x=>a.includes(x));
  let wi=ix('hanzi','simplified','simplified chinese'),pi=ix('pinyin','pinyin with tone marks'),li=ix('level','hsk level'),ii=ix('id'),ei=ix('entry'),hi=ix('homograph');
  if(wi<0||pi<0||li<0)throw Error('Неверный формат HSK 3.0 CSV');
@@ -156,7 +156,11 @@ async function load(forceFresh){
    $('counter').textContent='Не удалось загрузить слова';
  }
 }
-function levelMatch(w,l){if(l==='all')return true;if(l==='7-9')return ['7','8','9','7-9'].includes(w.level);return w.level===l}
+function levelMatch(w,l){
+ if(l==='all'||l==='7-9')return true;
+ const target=Number(l),wordLevel=Number(w.level);
+ return Number.isFinite(target)&&Number.isFinite(wordLevel)&&wordLevel<=target;
+}
 function filtered(){let l=$('level').value;return words.filter(w=>levelMatch(w,l)&&($('mode').value!=='mistakes'||mistakes.includes(w.word)))}
 function build(){queue=filtered();if($('mode').value==='random')queue.sort(()=>Math.random()-.5);index=0;show()}
 function clearCanvas(){if(window.renderWritingPanels2)window.renderWritingPanels2();}
@@ -198,7 +202,7 @@ $('showtranslation').onclick=()=>{
  if(current&&current.translation){e.textContent=current.translation;return;}
  if(!current)return;
  const a=document.createElement('a');
- a.href='https://chineseplus.club/dictionary/'+encodeURIComponent(current.word)+'/';
+ a.href='https://chineseplus.club/search/?q='+encodeURIComponent(current.word);
  a.target='_blank';a.rel='noopener noreferrer';
  a.textContent='Открыть подробный русский перевод в Chinese+ для «'+current.word+'»';
  e.appendChild(a);
@@ -229,7 +233,7 @@ async function loadRussianGlossary(){
 
 function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function progress(){$('s-total').textContent=stats.total||0;$('s-right').textContent=stats.right||0;$('s-rate').textContent=(stats.total?Math.round((stats.right||0)/stats.total*100):0)+'%';$('mistake-list').innerHTML=mistakes.length?mistakes.map(w=>'<span style="font-size:20px;margin:4px">'+esc(w)+'</span>').join(''):'Ошибок пока нет.'}
-function chinesePlusUrl(word){return 'https://chineseplus.club/dictionary/'+encodeURIComponent(word)+'/';}
+function chinesePlusUrl(word){return 'https://chineseplus.club/search/?q='+encodeURIComponent(word);}
 function renderWords(){
  let l=$('wordlevel').value,q=$('search').value.trim().toLocaleLowerCase('ru-RU'),
  a=words.filter(w=>levelMatch(w,l)&&(!q||w.word.toLocaleLowerCase().includes(q)||w.pinyin.toLocaleLowerCase().includes(q)||(w.translation||'').toLocaleLowerCase('ru-RU').includes(q)));
@@ -481,7 +485,7 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
   }
   function buildCharResult2(ch,index,result,userStrokes){
     const card=document.createElement('div');card.className='result-char';
-    const compare=document.createElement('div');compare.id='result-compare';
+    const compare=document.createElement('div');compare.className='result-compare';
     const yourPanel=document.createElement('div');yourPanel.className='result-preview-panel';
     const yourLabel=document.createElement('div');yourLabel.className='result-preview-label';yourLabel.textContent='Твоё написание';
     const yourBox=document.createElement('div');yourBox.className='result-preview-box';yourBox.appendChild(createUserPreview2(userStrokes||[]));
@@ -489,15 +493,16 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     const refPanel=document.createElement('div');refPanel.className='result-preview-panel';
     const refLabel=document.createElement('div');refLabel.className='result-preview-label';refLabel.textContent='Печатный эталон';
     const refBox=document.createElement('div');refBox.className='result-preview-box';
-    const refHost=document.createElement('div');refHost.style.width='100%';refHost.style.height='100%';refBox.appendChild(refHost);
+    const printed=document.createElement('div');
+    printed.className='printed-glyph';printed.textContent=ch;
+    refBox.appendChild(printed);
     refPanel.appendChild(refLabel);refPanel.appendChild(refBox);
     compare.appendChild(yourPanel);compare.appendChild(refPanel);card.appendChild(compare);
     const info=document.createElement('div');
-    const glyph=document.createElement('div');glyph.style.fontSize='26px';glyph.style.fontWeight='600';glyph.textContent=ch;
     const pct=document.createElement('div');pct.style.fontWeight='600';pct.textContent=result.unavailable?'Нет эталона':('Сходство формы: '+result.score+'%');
     const count=document.createElement('div');count.className='muted';count.style.fontSize='11px';
     count.textContent=result.unavailable?'':('Черт: '+result.actualCount+' из '+result.expectedCount);
-    info.appendChild(glyph);info.appendChild(pct);info.appendChild(count);card.appendChild(info);
+    info.appendChild(pct);info.appendChild(count);card.appendChild(info);
     const notes=document.createElement('div');notes.className='result-notes';notes.textContent=(result.notes||[]).join(' ');card.appendChild(notes);
     if(!result.unavailable&&window.HanziWriter){
       let animator=null;
@@ -510,13 +515,10 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
         button.textContent='Повторить порядок черт';
       };
       card.appendChild(button);
-      try{HanziWriter.create(refHost,ch,{width:160,height:160,padding:8,showCharacter:true,showOutline:false,strokeColor:'#252621'});}catch(e){refHost.textContent=ch;}
-    }else{
-      refHost.textContent=ch;
-      const fallback=document.createElement('div');fallback.className='muted';fallback.style.fontSize='12px';fallback.textContent='Анимация недоступна без эталона.';card.appendChild(fallback);
     }
     return card;
   }
+
   async function submitWriting2(){
     if(submitted2||attemptBusy2||!current)return;
     attemptBusy2=true;
