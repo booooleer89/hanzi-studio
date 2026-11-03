@@ -24,6 +24,14 @@ select,input{border:1px solid var(--line);background:white;padding:10px 12px;bor
 .actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.actions .primary{flex:1}.feedback{text-align:center;min-height:28px;margin:12px 0;color:var(--muted);font-size:13px}
 #result-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:15px}
 .result-char{border:1px solid var(--line);border-radius:10px;padding:12px;background:#fff}
+#result-compare{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
+.result-preview-panel{min-width:0;text-align:center}
+.result-preview-label{font-size:11px;color:var(--muted);margin-bottom:5px}
+.result-preview-box{width:100%;aspect-ratio:1;border:1px solid var(--line);border-radius:9px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.result-preview-box canvas{width:100%;height:100%;display:block;border:0;touch-action:auto}
+.result-preview-box svg{width:100%;height:100%}
+.result-animation{display:none;margin:8px auto;width:140px;height:140px}
+.result-animation.visible{display:block}
 .result-char-top{display:flex;gap:12px;align-items:center}
 .result-reference{width:105px;height:105px;flex:0 0 105px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .result-reference svg{width:100%;height:100%}
@@ -76,7 +84,9 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 <section id="words" class="hidden"><h1>Словарь HSK</h1><div class="sub">Поиск по иероглифам и пиньиню.</div>
 <div class="toolbar"><select id="wordlevel"><option value="all">Все уровни</option><option value="1">HSK 1</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option><option value="5">HSK 5</option><option value="6">HSK 6</option><option value="7-9">HSK 7–9</option></select><input id="search" placeholder="По-китайски, пиньиню или по-русски"></div>
 <div class="muted" id="translation-coverage" style="font-size:12px;margin:-5px 0 12px"></div>
-<div class="muted" id="wordcount"></div><div style="overflow:auto;margin-top:10px"><table><thead><tr><th>Слово</th><th>Пиньинь</th><th>Уровень</th><th>Перевод</th></tr></thead><tbody id="wordrows"></tbody></table></div></section>
+<div class="muted" id="wordcount"></div>
+<div class="toolbar" style="margin-top:10px"><button class="btn primary" id="bulk-translate">Перевести все слова без перевода</button><span class="muted" id="bulk-status" style="font-size:12px;align-self:center"></span></div>
+<div style="overflow:auto;margin-top:10px"><table><thead><tr><th>Слово</th><th>Пиньинь</th><th>Уровень</th><th>Перевод</th></tr></thead><tbody id="wordrows"></tbody></table></div></section>
 <section id="progress" class="hidden"><h1>Мой прогресс</h1><div class="sub">Результаты автоматической проверки сохраняются в этом браузере.</div>
 <div class="stats"><div class="stat"><b id="s-total">0</b><span>Попыток</span></div><div class="stat"><b id="s-right">0</b><span>Получилось</span></div><div class="stat"><b id="s-rate">0%</b><span>Слова без ошибок</span></div></div>
 <h3>Слова для повторения</h3><div id="mistake-list" class="muted"></div><button class="btn" id="reset" style="margin-top:20px">Сбросить статистику</button></section>
@@ -218,12 +228,13 @@ async function getRussianMeaning(word){
 }
 function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function progress(){$('s-total').textContent=stats.total||0;$('s-right').textContent=stats.right||0;$('s-rate').textContent=(stats.total?Math.round((stats.right||0)/stats.total*100):0)+'%';$('mistake-list').innerHTML=mistakes.length?mistakes.map(w=>'<span style="font-size:20px;margin:4px">'+esc(w)+'</span>').join(''):'Ошибок пока нет.'}
+let bulkTranslationRunning=false,bulkTranslationPause=false;
 function renderWords(){
  let l=$('wordlevel').value,q=$('search').value.trim().toLocaleLowerCase('ru-RU'),
  a=words.filter(w=>levelMatch(w,l)&&(!q||w.word.toLocaleLowerCase().includes(q)||w.pinyin.toLocaleLowerCase().includes(q)||(w.translation||'').toLocaleLowerCase('ru-RU').includes(q)));
  $('wordcount').textContent=a.length+' слов';
  const ruCount=words.filter(w=>!!w.translation).length;
- $('translation-coverage').textContent='Русские переводы загружены для '+ruCount.toLocaleString('ru-RU')+' из '+words.length.toLocaleString('ru-RU')+' слов. Для остальных можно запросить машинный перевод.';
+ $('translation-coverage').textContent='Русские переводы загружены для '+ruCount.toLocaleString('ru-RU')+' из '+words.length.toLocaleString('ru-RU')+' слов. Остальные можно постепенно перевести автоматически.';
  $('wordrows').innerHTML=a.slice(0,300).map((w,i)=>{
    let cell=w.translation?esc(w.translation)+(w.autoTranslated?' <small style="color:#85877f">(машинный)</small>':''):'<button class="btn word-translate" data-index="'+i+'" style="padding:5px 8px;font-size:12px">Найти перевод</button>';
    return '<tr><td>'+esc(w.word)+'</td><td>'+esc(w.pinyin)+'</td><td>HSK '+esc(w.level)+'</td><td>'+cell+'</td></tr>';
@@ -237,7 +248,43 @@ function renderWords(){
    };
  });
 }
-$('wordlevel').onchange=renderWords;$('search').oninput=renderWords;$('reload-words').onclick=()=>load(true);$('reset').onclick=()=>{if(confirm('Сбросить статистику?')){stats={};mistakes=[];save();progress()}};
+async function startBulkTranslation(){
+ if(bulkTranslationRunning){bulkTranslationPause=true;$('bulk-status').textContent='Ставлю на паузу…';return;}
+ bulkTranslationRunning=true;bulkTranslationPause=false;
+ $('bulk-translate').textContent='Пауза';
+ const missing=words.filter(w=>!w.translation);
+ let done=0,failed=0,stoppedByLimit=false;
+ try{
+  for(let i=0;i<missing.length;i++){
+   if(bulkTranslationPause)break;
+   const word=missing[i];
+   $('bulk-status').textContent='Перевожу '+(i+1)+' из '+missing.length+' · '+done+' готово';
+   try{
+    const meaning=await getRussianMeaning(word.word);
+    if(meaning){word.translation=meaning;word.autoTranslated=true;done++;}
+    else failed++;
+   }catch(err){
+    const message=String(err&&err.message||err);
+    if(/quota|limit|429|daily|exceeded/i.test(message)){stoppedByLimit=true;break;}
+    failed++;
+   }
+   if(i%8===0)renderWords();
+   await new Promise(resolve=>setTimeout(resolve,180));
+  }
+ }finally{
+  bulkTranslationRunning=false;bulkTranslationPause=false;
+  $('bulk-translate').textContent='Продолжить перевод недостающих слов';
+  renderWords();
+  if(stoppedByLimit){
+   $('bulk-status').textContent='Сервис достиг дневного лимита. Готовые переводы сохранены; продолжи позже.';
+  }else if(bulkTranslationPause){
+   $('bulk-status').textContent='Пауза. За этот запуск переведено: '+done;
+  }else{
+   $('bulk-status').textContent='За этот запуск переведено: '+done+' · без результата: '+failed;
+  }
+ }
+}
+$('wordlevel').onchange=renderWords;$('search').oninput=renderWords;$('reload-words').onclick=()=>load(true);$('bulk-translate').onclick=startBulkTranslation;$('reset').onclick=()=>{if(confirm('Сбросить статистику?')){stats={};mistakes=[];save();progress()}};
 document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));b.classList.add('active');['practice','words','progress'].forEach(id=>$(id).classList.toggle('hidden',id!==b.dataset.view));if(b.dataset.view==='words')renderWords();if(b.dataset.view==='progress')progress()});
 // Загрузка словаря запускается после инициализации нового поля письма.
 </script>
@@ -299,6 +346,8 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
   }
   function renderWritingPanels2(){
     submitted2=false;attemptBusy2=false;
+    $2('clear').textContent='Очистить всё';$2('clear').disabled=false;
+    $2('analysis-panel').classList.add('hidden');
     wordCharacters2=(current&&current.word?Array.from(current.word).filter(isHan2):[]);
     drawings2=[];
     const host=$2('writing-panels');
@@ -447,21 +496,56 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
       return HanziWriter.create(host,ch,{width:105,height:105,padding:5,showCharacter:true,showOutline:false,strokeColor:'#252621',strokeWidth:3,renderer:'svg'});
     }catch(e){host.textContent=ch;return null;}
   }
-  function buildCharResult2(ch,index,result){
+  function createUserPreview2(strokes){
+    const canvas=document.createElement('canvas');canvas.width=160;canvas.height=160;
+    const ctx=canvas.getContext('2d');ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#252621';ctx.lineWidth=7;
+    const bounds=getBounds2(strokes);if(!bounds)return canvas;
+    const w=Math.max(1,bounds.maxX-bounds.minX),h=Math.max(1,bounds.maxY-bounds.minY);
+    const scale=Math.min(132/w,132/h),left=(160-w*scale)/2,top=(160-h*scale)/2;
+    strokes.forEach(stroke=>{
+      if(!stroke.length)return;
+      ctx.beginPath();ctx.moveTo(left+(stroke[0][0]-bounds.minX)*scale,top+(stroke[0][1]-bounds.minY)*scale);
+      for(let i=1;i<stroke.length;i++)ctx.lineTo(left+(stroke[i][0]-bounds.minX)*scale,top+(stroke[i][1]-bounds.minY)*scale);
+      ctx.stroke();
+    });
+    return canvas;
+  }
+  function buildCharResult2(ch,index,result,userStrokes){
     const card=document.createElement('div');card.className='result-char';
-    const top=document.createElement('div');top.className='result-char-top';
-    const reference=document.createElement('div');reference.className='result-reference';
+    const compare=document.createElement('div');compare.id='result-compare';
+    const yourPanel=document.createElement('div');yourPanel.className='result-preview-panel';
+    const yourLabel=document.createElement('div');yourLabel.className='result-preview-label';yourLabel.textContent='Твоё написание';
+    const yourBox=document.createElement('div');yourBox.className='result-preview-box';yourBox.appendChild(createUserPreview2(userStrokes||[]));
+    yourPanel.appendChild(yourLabel);yourPanel.appendChild(yourBox);
+    const refPanel=document.createElement('div');refPanel.className='result-preview-panel';
+    const refLabel=document.createElement('div');refLabel.className='result-preview-label';refLabel.textContent='Печатный эталон';
+    const refBox=document.createElement('div');refBox.className='result-preview-box';
+    const refHost=document.createElement('div');refHost.style.width='100%';refHost.style.height='100%';refBox.appendChild(refHost);
+    refPanel.appendChild(refLabel);refPanel.appendChild(refBox);
+    compare.appendChild(yourPanel);compare.appendChild(refPanel);card.appendChild(compare);
     const info=document.createElement('div');
-    const glyph=document.createElement('div');glyph.style.fontSize='30px';glyph.style.marginBottom='4px';glyph.textContent=ch;
-    const pct=document.createElement('div');pct.style.fontWeight='600';pct.textContent=result.unavailable?'Нет эталона':('Сходство: '+result.score+'%');
+    const glyph=document.createElement('div');glyph.style.fontSize='26px';glyph.style.fontWeight='600';glyph.textContent=ch;
+    const pct=document.createElement('div');pct.style.fontWeight='600';pct.textContent=result.unavailable?'Нет эталона':('Сходство формы: '+result.score+'%');
     const count=document.createElement('div');count.className='muted';count.style.fontSize='11px';
     count.textContent=result.unavailable?'':('Черт: '+result.actualCount+' из '+result.expectedCount);
-    info.appendChild(glyph);info.appendChild(pct);info.appendChild(count);
-    top.appendChild(reference);top.appendChild(info);card.appendChild(top);
-    const notes=document.createElement('div');notes.className='result-notes';
-    notes.textContent=(result.notes||[]).join(' ');
-    card.appendChild(notes);
-    if(!result.unavailable)createReference2(reference,ch);
+    info.appendChild(glyph);info.appendChild(pct);info.appendChild(count);card.appendChild(info);
+    const notes=document.createElement('div');notes.className='result-notes';notes.textContent=(result.notes||[]).join(' ');card.appendChild(notes);
+    if(!result.unavailable&&window.HanziWriter){
+      let animator=null;
+      const animationHost=document.createElement('div');animationHost.className='result-animation';card.appendChild(animationHost);
+      const button=document.createElement('button');button.className='btn result-order';button.textContent='Показать порядок черт';
+      button.onclick=()=>{
+        animationHost.classList.add('visible');
+        if(!animator)animator=HanziWriter.create(animationHost,ch,{width:140,height:140,padding:8,showCharacter:false,showOutline:false,strokeColor:'#252621',strokeAnimationSpeed:1.2});
+        if(animator&&animator.animateCharacter)animator.animateCharacter();
+        button.textContent='Повторить порядок черт';
+      };
+      card.appendChild(button);
+      try{HanziWriter.create(refHost,ch,{width:160,height:160,padding:8,showCharacter:true,showOutline:false,strokeColor:'#252621'});}catch(e){refHost.textContent=ch;}
+    }else{
+      refHost.textContent=ch;
+      const fallback=document.createElement('div');fallback.className='muted';fallback.style.fontSize='12px';fallback.textContent='Анимация недоступна без эталона.';card.appendChild(fallback);
+    }
     return card;
   }
   async function submitWriting2(){
@@ -498,11 +582,12 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
         (success?'Форма слова близка к эталону. Порядок черт не учитывался.':
         'Проверь форму, пропорции и количество черт в разборе ниже. Порядок черт не влияет на процент.');
       const resultList=$2('result-list');resultList.innerHTML='';
-      results.forEach((item,i)=>resultList.appendChild(buildCharResult2(item.character,i,item.result)));
+      results.forEach((item,i)=>resultList.appendChild(buildCharResult2(item.character,i,item.result,drawings2[i]||[])));
       $2('analysis-panel').classList.remove('hidden');
       $2('feedback').textContent='Написание сохранено. Оригинал и разбор готовы.';
       $2('submit-writing').disabled=true;
-      $2('clear').disabled=true;
+      $2('clear').disabled=false;
+      $2('clear').textContent='Ещё одна попытка';
       $2('retry-writing').disabled=false;
       $2('next').disabled=false;
       $2('skip').disabled=false;
@@ -532,7 +617,7 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
   window.renderWritingPanels2=renderWritingPanels2;
   $2('submit-writing').onclick=submitWriting2;
   $2('retry-writing').onclick=retryWriting2;
-  $2('clear').onclick=renderWritingPanels2;
+  $2('clear').onclick=function(){if(submitted2){retryWriting2();}else{renderWritingPanels2();}};
   load();
   save();
 })();
