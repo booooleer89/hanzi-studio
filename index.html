@@ -16,21 +16,30 @@ select,input{border:1px solid var(--line);background:white;padding:10px 12px;bor
 .card{background:white;border:1px solid var(--line);border-radius:14px;padding:20px}.head{display:flex;justify-content:space-between;color:var(--muted);font-size:12px}
 .center{text-align:center;padding:22px 0}.hanzi{font:64px/1.3 "Noto Serif CJK SC","Songti SC",serif;letter-spacing:4px;min-height:0}.pinyin{font-size:18px;color:#686b64;margin-top:6px}
 .btn{border:1px solid var(--line);background:white;border-radius:8px;padding:10px 14px;color:#333;cursor:pointer;font:inherit}.primary{background:#252621;color:white;border-color:#252621}
-.translation{font-size:15px;color:#555;margin-top:10px}.pad{max-width:440px;margin:auto}.padlabel{font-size:12px;color:var(--muted);margin:8px 0}
-canvas{width:100%;aspect-ratio:1.55;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;background:white}
+.translation{font-size:15px;color:#555;margin-top:10px}.pad{max-width:760px;margin:auto}.padlabel{font-size:12px;color:var(--muted);margin:8px 0}
+#writing-panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin-top:12px}
+.write-cell{min-width:0}.write-cell-label{font-size:12px;color:var(--muted);margin:0 0 5px}
+.write-canvas{width:100%;aspect-ratio:1;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;background-color:#fff;background-image:linear-gradient(to right,transparent calc(50% - .5px),#f0f0ec 50%,transparent calc(50% + .5px)),linear-gradient(to bottom,transparent calc(50% - .5px),#f0f0ec 50%,transparent calc(50% + .5px))}
+.write-canvas:disabled{opacity:.86}
 .actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.actions .primary{flex:1}.feedback{text-align:center;min-height:28px;margin:12px 0;color:var(--muted);font-size:13px}
+#result-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:15px}
+.result-char{border:1px solid var(--line);border-radius:10px;padding:12px;background:#fff}
+.result-char-top{display:flex;gap:12px;align-items:center}
+.result-reference{width:105px;height:105px;flex:0 0 105px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.result-reference svg{width:100%;height:100%}
+.result-score{font-size:13px;color:#555;margin-top:8px}
+.result-notes{font-size:12px;color:#666;margin-top:5px}
+.result-order{margin-top:9px;font-size:12px;padding:7px 9px}
+.result-summary{padding:13px;border-radius:9px;background:var(--soft);font-size:14px}
 .next{display:flex;justify-content:space-between;align-items:center;gap:10px}.notice{background:#f6f3eb;border:1px solid #eee8d9;padding:12px;border-radius:8px;color:#74684f;font-size:12px;margin-top:16px}
 .hidden{display:none!important}.stats{display:flex;gap:12px;margin:18px 0}.stat{flex:1;background:white;border:1px solid var(--line);border-radius:9px;padding:15px}.stat b{display:block;font-size:24px}.stat span{font-size:12px;color:var(--muted)}
 table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left;padding:11px;border-bottom:1px solid var(--line);font-size:13px}td:first-child{font-size:20px}
 #strokePreview{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin:10px auto} .strokeChar{width:140px;height:140px}
 @media(max-width:700px){.shell{padding:18px 13px}.layout{grid-template-columns:1fr;gap:18px}.side{display:flex;overflow:auto;border:0;border-bottom:1px solid var(--line);padding:0 0 12px}.nav{white-space:nowrap;width:auto}.hanzi{font-size:54px}.card{padding:15px}.stats{gap:7px}.stat{padding:10px}}
 
-#quiz-target{width:min(100%,340px);height:340px;margin:10px auto;border:1px solid var(--line);border-radius:12px;overflow:hidden;touch-action:none;background-color:#fff;background-image:linear-gradient(to right,transparent calc(50% - .5px),#f0f0ec 50%,transparent calc(50% + .5px)),linear-gradient(to bottom,transparent calc(50% - .5px),#f0f0ec 50%,transparent calc(50% + .5px))}
-#quiz-target svg{display:block;width:100%;height:100%;touch-action:none}
-.quiz-meta{display:flex;justify-content:space-between;gap:10px;max-width:440px;margin:8px auto;color:var(--muted);font-size:12px}
-.quiz-score{font-size:13px;text-align:center;color:#666;min-height:22px;margin:6px 0}
-#skip-character[hidden]{display:none!important}
-.quiz-loading{padding:28px 12px;text-align:center;color:var(--muted);font-size:13px}
+.analysis-caption{font-size:12px;color:var(--muted);margin:7px 0}
+#retry-writing{margin-top:10px}
+@media(max-width:700px){#writing-panels{grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px}.result-reference{width:88px;height:88px;flex-basis:88px}}
 </style>
 </head>
 <body>
@@ -40,25 +49,29 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 <aside class="side"><button class="nav active" data-view="practice">Прописывание</button><button class="nav" data-view="words">Словарь</button><button class="nav" data-view="progress">Мой прогресс</button></aside>
 <main>
 <section id="practice">
-<h1>Практика письма</h1><div class="sub">Сначала вспомни слово по пиньиню, затем открой подсказки и пропиши его.</div>
+<h1>Практика письма</h1><div class="sub">Сначала напиши слово по памяти. Проверка появится только после сохранения.</div>
 <div class="toolbar"><select id="level"><option value="1">HSK 1</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option><option value="5">HSK 5</option><option value="6">HSK 6</option><option value="7-9">HSK 7–9</option><option value="all">Все уровни</option></select>
 <select id="mode"><option value="random">Случайный порядок</option><option value="sequence">По порядку</option><option value="mistakes">Мои ошибки</option></select><button class="btn" id="skip">Пропустить</button><button class="btn" id="reload-words">Обновить слова</button></div>
 <div class="card">
 <div class="head"><span id="counter">Подготовка словаря</span><span id="leveltag">HSK 1</span></div>
-<div class="center"><div class="hanzi hidden" id="target"></div><div class="pinyin" id="pinyin">hǎo</div>
-<div style="margin-top:12px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap"><button class="btn" id="showhanzi">Показать иероглиф</button><button class="btn" id="showtranslation">Показать перевод</button><button class="btn" id="showstrokes">Порядок черт</button></div>
-<div class="translation hidden" id="translation"></div><div id="strokePreview" class="hidden"></div>
-<div class="muted" style="font-size:12px;margin-top:12px">Напиши слово в поле ниже — палец или Apple Pencil</div></div>
-<div class="pad"><div class="padlabel">Пиши иероглиф по чертам — пальцем или Apple Pencil</div>
-<div class="quiz-meta"><span id="quiz-char-index">Иероглиф —</span><span id="quiz-stroke-index">Подготовка проверки…</span></div>
-<div id="quiz-target"><div class="quiz-loading">Подготавливаю поле для письма…</div></div>
-<div class="actions"><button class="btn" id="clear">Начать слово заново</button><button class="btn" id="skip-character" hidden>Пропустить иероглиф</button></div>
-<div class="feedback" id="feedback">Загружаю слова…</div><div class="quiz-score" id="quiz-score"></div>
-<div class="hidden" id="selfRate"><button id="markRight" type="button"></button><button id="markWrong" type="button"></button></div>
+<div class="center"><div class="pinyin" id="pinyin">hǎo</div>
+<div style="margin-top:12px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap"><button class="btn" id="showtranslation">Показать перевод</button></div>
+<div class="translation hidden" id="translation"></div>
+<div class="muted" style="font-size:12px;margin-top:12px">Оригинал и разбор ошибок появятся только после отправки слова.</div></div>
+<div class="pad"><div class="padlabel">Напиши иероглифы по памяти. Никаких подсказок во время письма.</div>
+<div id="writing-panels"></div>
+<div class="actions"><button class="btn" id="clear">Очистить всё</button><button class="btn primary" id="submit-writing">Сохранить и проверить</button></div>
+<div class="feedback" id="feedback">Загружаю слова…</div>
+<div id="analysis-panel" class="hidden">
+ <div class="result-summary" id="analysis-summary"></div>
+ <div class="analysis-caption">Оригинал и разбор каждого иероглифа</div>
+ <div id="result-list"></div>
+ <button class="btn" id="retry-writing">Попробовать ещё раз</button>
 </div>
-<div class="next"><span class="muted" id="accuracy" style="font-size:12px">Верно: 0 · Повторить: 0</span><button class="btn primary" id="next">Следующее слово →</button></div>
 </div>
-<div class="notice">Проверка идёт автоматически по эталонным чертам: оцениваются форма, положение и направление каждой черты, а также порядок написания. После 2 ошибок появляется подсказка; после 6 попыток сложная черта засчитывается, чтобы можно было продолжить. Это проверка письма по эталону, а не распознавание произвольного текста.</div>
+<div class="next"><span class="muted" id="accuracy" style="font-size:12px">Слова: 0 · Повторить: 0</span><button class="btn primary" id="next">Следующее слово →</button></div>
+</div>
+<div class="notice">Сначала ты пишешь самостоятельно — сайт не показывает контур и не исправляет тебя в процессе. После нажатия «Сохранить и проверить» сравниваются записанные траектории с эталонными чертами: примерная похожесть формы, пропорции, количество и порядок. Это геометрическая проверка по базе черт, не AI-распознавание свободного текста; результаты могут быть приблизительными.</div>
 </section>
 <section id="words" class="hidden"><h1>Словарь HSK</h1><div class="sub">Поиск по иероглифам и пиньиню.</div>
 <div class="toolbar"><select id="wordlevel"><option value="all">Все уровни</option><option value="1">HSK 1</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option><option value="5">HSK 5</option><option value="6">HSK 6</option><option value="7-9">HSK 7–9</option></select><input id="search" placeholder="Найти слово или пиньинь"></div>
@@ -110,15 +123,37 @@ async function load(forceFresh){
 function levelMatch(w,l){if(l==='all')return true;if(l==='7-9')return ['7','8','9','7-9'].includes(w.level);return w.level===l}
 function filtered(){let l=$('level').value;return words.filter(w=>levelMatch(w,l)&&($('mode').value!=='mistakes'||mistakes.includes(w.word)))}
 function build(){queue=filtered();if($('mode').value==='random')queue.sort(()=>Math.random()-.5);index=0;show()}
-function clearCanvas(){let target=$('quiz-target');if(target)target.innerHTML='';}
-function show(){ $('strokePreview').innerHTML='';$('strokePreview').classList.add('hidden');$('selfRate').classList.add('hidden');
-if(!queue.length){$('target').textContent='—';$('target').classList.remove('hidden');$('pinyin').textContent='';$('counter').textContent='Нет слов для этого фильтра';return}
-if(index>=queue.length)index=0;current=queue[index];$('target').textContent=current.word;$('target').classList.add('hidden');$('showhanzi').textContent='Показать иероглиф';$('pinyin').textContent=current.pinyin;
-$('translation').textContent=current.translation||'Перевод отсутствует в источнике словаря.';$('translation').classList.add('hidden');$('showtranslation').textContent='Показать перевод';
-$('counter').textContent='Слово '+(index+1)+' из '+queue.length;$('leveltag').textContent='HSK '+current.level;$('feedback').textContent='Напиши слово в поле ниже.';$('feedback').style.color='';clearCanvas()}
-function rate(ok){stats.total=(stats.total||0)+1;if(ok){stats.right=(stats.right||0)+1;mistakes=mistakes.filter(x=>x!==current.word);$('feedback').textContent='Отмечено как выполненное.'}else{stats.wrong=(stats.wrong||0)+1;if(!mistakes.includes(current.word))mistakes.push(current.word);$('feedback').textContent='Добавлено в список повторения.'}save();progress();$('selfRate').classList.add('hidden')}
+function clearCanvas(){if(window.renderWritingPanels2)window.renderWritingPanels2();}
+function show(){
+ if(!queue.length){
+   current=null;
+   $('pinyin').textContent='';
+   $('counter').textContent='Нет слов для этого фильтра';
+   $('feedback').textContent='В этом фильтре пока нет слов.';
+   $('analysis-panel').classList.add('hidden');
+   $('submit-writing').disabled=true;
+   $('next').disabled=true;
+   clearCanvas();
+   return;
+ }
+ if(index>=queue.length)index=0;
+ current=queue[index];
+ $('pinyin').textContent=current.pinyin;
+ $('translation').textContent=current.translation||'Перевод отсутствует в источнике словаря.';
+ $('translation').classList.add('hidden');
+ $('showtranslation').textContent='Показать перевод';
+ $('counter').textContent='Слово '+(index+1)+' из '+queue.length;
+ $('leveltag').textContent='HSK '+current.level;
+ $('feedback').textContent='Напиши слово по памяти. Проверка не будет подсказывать во время письма.';
+ $('feedback').style.color='';
+ $('analysis-panel').classList.add('hidden');
+ $('submit-writing').disabled=false;
+ $('next').disabled=true;
+ $('skip').disabled=false;
+ clearCanvas();
+}
+function rate(ok){stats.total=(stats.total||0)+1;if(ok){stats.right=(stats.right||0)+1;mistakes=mistakes.filter(x=>x!==current.word);$('feedback').textContent='Слово засчитано.'}else{stats.wrong=(stats.wrong||0)+1;if(!mistakes.includes(current.word))mistakes.push(current.word);$('feedback').textContent='Слово добавлено в повторение.'}save();progress()}
 function save(){localStorage.setItem('hanzi-stats',JSON.stringify(stats));localStorage.setItem('hanzi-mistakes',JSON.stringify(mistakes));$('accuracy').textContent='Верно: '+(stats.right||0)+' · Повторить: '+(stats.wrong||0)}
-$('showhanzi').onclick=()=>{let e=$('target');e.classList.toggle('hidden');$('showhanzi').textContent=e.classList.contains('hidden')?'Показать иероглиф':'Скрыть иероглиф'};
 $('showtranslation').onclick=async()=>{
  let e=$('translation'),b=$('showtranslation');
  if(!e.classList.contains('hidden')){e.classList.add('hidden');b.textContent='Показать перевод';return;}
@@ -135,8 +170,9 @@ $('showtranslation').onclick=async()=>{
    if(current && current.word===word)e.textContent='Сервис перевода временно недоступен. Попробуй ещё раз позже.';
  }
 };
-$('showstrokes').onclick=()=>{let box=$('strokePreview');box.innerHTML='';if(typeof HanziWriter==='undefined'){$('feedback').textContent='Не удалось загрузить анимацию черт. Проверь интернет.';return}box.classList.remove('hidden');[...current.word].forEach((ch,i)=>{let d=document.createElement('div');d.className='strokeChar';d.id='stroke-'+i;box.appendChild(d);try{let w=HanziWriter.create(d.id,ch,{width:140,height:140,padding:5,showCharacter:false,showOutline:true,strokeAnimationSpeed:1});w.animateCharacter()}catch(e){d.textContent='Нет образца'}})};
-$('next').onclick=()=>{index++;show()};$('skip').onclick=()=>{index++;show()};$('level').onchange=build;$('mode').onchange=build;$('clear').onclick=clearCanvas;
+$('next').onclick=()=>{if(!$('next').disabled){index++;show()}};
+$('skip').onclick=()=>{index++;show()};
+$('level').onchange=build;$('mode').onchange=build;$('clear').onclick=clearCanvas;
 // Рукописную проверку запускает блок Hanzi Writer ниже.
 async function getRussianMeaning(word){
  const key='hanzi-ru-translation-cache';
@@ -175,165 +211,272 @@ function renderWords(){
 }
 $('wordlevel').onchange=renderWords;$('search').oninput=renderWords;$('reload-words').onclick=()=>load(true);$('reset').onclick=()=>{if(confirm('Сбросить статистику?')){stats={};mistakes=[];save();progress()}};
 document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));b.classList.add('active');['practice','words','progress'].forEach(id=>$(id).classList.toggle('hidden',id!==b.dataset.view));if(b.dataset.view==='words')renderWords();if(b.dataset.view==='progress')progress()});
-// Старый Canvas удалён: рукописный ввод теперь обрабатывает Hanzi Writer.
-load();save();
+// Загрузка словаря запускается после инициализации нового поля письма.
 </script>
 
 <script>
 (function(){
-  var el = function(id){ return document.getElementById(id); };
-  var quizWriter2 = null, quizChars2 = [], quizPos2 = 0;
-  var quizMistakes2 = 0, quizFirstTry2 = 0, quizStrokeTotal2 = 0, quizUnverified2 = 0;
-  var quizGeneration2 = 0, quizTimer2 = null, wordFinished2 = false;
+  const $2 = id => document.getElementById(id);
+  const SIZE = 640, GRID = 1024;
+  let drawings2 = [], wordCharacters2 = [], submitted2 = false, attemptBusy2 = false;
 
-  function cancelCurrent2(){
-    if(quizWriter2 && typeof quizWriter2.cancelQuiz === 'function'){
-      try{ quizWriter2.cancelQuiz(); }catch(e){}
+  function isHan2(ch){
+    const cp=ch.codePointAt(0);
+    return (cp>=0x3400&&cp<=0x9FFF)||(cp>=0xF900&&cp<=0xFAFF);
+  }
+  function makeCanvas2(index){
+    const cell=document.createElement('div');
+    cell.className='write-cell';
+    const label=document.createElement('div');
+    label.className='write-cell-label';
+    label.textContent='Иероглиф '+(index+1);
+    const canvas=document.createElement('canvas');
+    canvas.className='write-canvas';
+    canvas.width=SIZE;canvas.height=SIZE;
+    canvas.setAttribute('aria-label','Поле для написания иероглифа '+(index+1));
+    cell.appendChild(label);cell.appendChild(canvas);
+    const ctx=canvas.getContext('2d');
+    ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#252621';ctx.fillStyle='#252621';ctx.lineWidth=13;
+    const pointsForThisCharacter=[];
+    drawings2[index]=pointsForThisCharacter;
+    let active=null;
+    function localPoint(e){
+      const r=canvas.getBoundingClientRect();
+      return [Math.max(0,Math.min(GRID,(e.clientX-r.left)/r.width*GRID)),
+              Math.max(0,Math.min(GRID,(e.clientY-r.top)/r.height*GRID))];
     }
-    quizWriter2 = null;
-  }
-  function updateCharacterLabel2(){
-    el('quiz-char-index').textContent = 'Иероглиф ' + (quizPos2 + 1) + ' из ' + quizChars2.length;
-  }
-  function finishWord2(){
-    if(wordFinished2) return;
-    wordFinished2 = true;
-    cancelCurrent2();
-    el('skip-character').hidden = true;
-    var checked = quizCorrect2 + quizMistakes2;
-    var accuracy = quizStrokeTotal2 ? Math.round(quizFirstTry2 / quizStrokeTotal2 * 100) : 0;
-    var perfect = quizMistakes2 === 0 && quizUnverified2 === 0;
-    rate(perfect);
-    el('feedback').textContent = perfect
-      ? 'Слово пройдено без ошибок. Отличная работа!'
-      : 'Слово завершено. Посмотри, какие черты пришлось исправлять.';
-    el('quiz-score').textContent = 'Черты с первой попытки: ' + accuracy + '% · Ошибок: ' + quizMistakes2 + (quizUnverified2 ? ' · Иероглифов пропущено: ' + quizUnverified2 : '');
-    el('quiz-stroke-index').textContent = 'Слово завершено';
-  }
-  function nextCharacter2(){
-    if(quizPos2 + 1 < quizChars2.length){
-      quizPos2++;
-      startCharacter2();
-    } else {
-      finishWord2();
-    }
-  }
-  function startCharacter2(){
-    var ch = quizChars2[quizPos2];
-    var generation = ++quizGeneration2;
-    cancelCurrent2();
-    el('skip-character').hidden = true;
-    el('quiz-target').innerHTML = '';
-    updateCharacterLabel2();
-    el('quiz-stroke-index').textContent = 'Загрузка эталона…';
-    el('feedback').textContent = 'Подготавливаю проверку иероглифа ' + ch + '…';
-    if(!window.HanziWriter){
-      el('quiz-target').innerHTML = '<div class="quiz-loading">Модуль проверки не загрузился. Обнови страницу при подключённом интернете.</div>';
-      el('feedback').textContent = 'Не удалось загрузить Hanzi Writer.';
-      el('quiz-stroke-index').textContent = 'Проверка недоступна';
-      el('skip-character').hidden = false;
-      return;
-    }
-    try{
-      quizWriter2 = HanziWriter.create(el('quiz-target'), ch, {
-        width: 320,
-        height: 320,
-        padding: 28,
-        showCharacter: false,
-        showOutline: false,
-        renderer: 'svg',
-        strokeColor: '#b7b9b2',
-        drawingColor: '#252621',
-        drawingWidth: 5,
-        highlightColor: '#ad5045',
-        strokeAnimationSpeed: 1.2,
-        showHintAfterMisses: 2,
-        onLoadCharDataSuccess: function(data){
-          if(generation !== quizGeneration2) return;
-          quizStrokeTotal2 += (data && data.strokes ? data.strokes.length : 0);
-          el('feedback').textContent = 'Начинай писать. Сайт проверяет форму и порядок каждой черты.';
-          el('quiz-stroke-index').textContent = 'Жду первую черту';
-        },
-        onLoadCharDataError: function(){
-          if(generation !== quizGeneration2) return;
-          el('quiz-target').innerHTML = '<div class="quiz-loading">Для этого иероглифа не найден эталонный набор черт.</div>';
-          el('feedback').textContent = 'Этот знак пока нельзя проверить автоматически. Пропусти его и продолжи слово.';
-          el('quiz-stroke-index').textContent = 'Нет эталона';
-          el('skip-character').hidden = false;
-        }
-      });
-      quizWriter2.quiz({
-        leniency: 1.0,
-        showHintAfterMisses: 2,
-        markStrokeCorrectAfterMisses: 6,
-        onMistake: function(data){
-          if(generation !== quizGeneration2) return;
-          quizMistakes2++;
-          var strokeNo = (data.strokeNum || 0) + 1;
-          var total = strokeNo + (data.strokesRemaining || 0);
-          el('quiz-stroke-index').textContent = 'Черта ' + strokeNo + ' из ' + total;
-          el('feedback').textContent = 'Черта не совпала. Проверь форму, расположение и направление. Попытка: ' + (data.mistakesOnStroke || 1);
-          el('quiz-score').textContent = 'Ошибок в этом слове: ' + quizMistakes2;
-        },
-        onCorrectStroke: function(data){
-          if(generation !== quizGeneration2) return;
-          if((data.mistakesOnStroke || 0) === 0) quizFirstTry2++;
-          var strokeNo = (data.strokeNum || 0) + 1;
-          var total = strokeNo + (data.strokesRemaining || 0);
-          el('quiz-stroke-index').textContent = 'Черта ' + strokeNo + ' из ' + total + ' принята';
-          el('feedback').textContent = 'Верно. Продолжай следующую черту.';
-          el('quiz-score').textContent = 'Без ошибок с первой попытки: ' + quizFirstTry2 + ' · Всего черт: ' + quizStrokeTotal2 + ' · Ошибок: ' + quizMistakes2;
-        },
-        onComplete: function(){
-          if(generation !== quizGeneration2) return;
-          el('feedback').textContent = 'Иероглиф ' + ch + ' завершён.';
-          el('quiz-stroke-index').textContent = 'Иероглиф готов';
-          quizTimer2 = setTimeout(function(){
-            if(generation === quizGeneration2) nextCharacter2();
-          }, 650);
-        }
-      });
-    } catch(err){
-      if(generation !== quizGeneration2) return;
-      el('quiz-target').innerHTML = '<div class="quiz-loading">Не получилось запустить проверку этого иероглифа.</div>';
-      el('feedback').textContent = 'Ошибка запуска тренажёра. Попробуй начать слово заново.';
-      el('quiz-stroke-index').textContent = 'Ошибка';
-      el('skip-character').hidden = false;
-    }
-  }
-  function startWord2(){
-    if(!current || !current.word) return;
-    if(quizTimer2) clearTimeout(quizTimer2);
-    quizGeneration2++;
-    cancelCurrent2();
-    quizChars2 = Array.from(current.word).filter(function(ch){
-      var cp = ch.codePointAt(0);
-      return (cp >= 0x3400 && cp <= 0x9FFF) || (cp >= 0xF900 && cp <= 0xFAFF);
+    canvas.addEventListener('pointerdown',e=>{
+      if(submitted2||attemptBusy2)return;
+      e.preventDefault();
+      try{canvas.setPointerCapture(e.pointerId)}catch(err){}
+      active=[localPoint(e)];
+      pointsForThisCharacter.push(active);
+      const p=localPoint(e);
+      ctx.beginPath();ctx.arc(p[0]/GRID*SIZE,p[1]/GRID*SIZE,6.5,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.moveTo(p[0]/GRID*SIZE,p[1]/GRID*SIZE);
     });
-    quizPos2 = 0;
-    quizMistakes2 = 0;
-    quizFirstTry2 = 0;
-    quizStrokeTotal2 = 0;
-    quizUnverified2 = 0;
-    wordFinished2 = false;
-    el('quiz-score').textContent = '';
-    el('skip-character').hidden = true;
-    if(!quizChars2.length){
-      el('quiz-target').innerHTML = '<div class="quiz-loading">В этом слове нет иероглифов для проверки.</div>';
-      el('feedback').textContent = 'Не удалось выделить китайские иероглифы.';
-      return;
-    }
-    startCharacter2();
+    canvas.addEventListener('pointermove',e=>{
+      if(!active||submitted2||attemptBusy2)return;
+      e.preventDefault();
+      const p=localPoint(e),last=active[active.length-1];
+      if(Math.hypot(p[0]-last[0],p[1]-last[1])<1.5)return;
+      active.push(p);
+      ctx.lineTo(p[0]/GRID*SIZE,p[1]/GRID*SIZE);ctx.stroke();
+    });
+    const end=()=>{active=null;};
+    canvas.addEventListener('pointerup',end);
+    canvas.addEventListener('pointercancel',end);
+    canvas.addEventListener('lostpointercapture',end);
+    return cell;
   }
-  el('clear').onclick = startWord2;
-  el('skip-character').onclick = function(){
-    if(wordFinished2) return;
-    quizUnverified2++;
-    el('feedback').textContent = 'Иероглиф пропущен — переходим к следующему.';
-    nextCharacter2();
-  };
-  window.clearCanvas = startWord2;
-  if(typeof current !== 'undefined' && current && current.word) startWord2();
+  function renderWritingPanels2(){
+    submitted2=false;attemptBusy2=false;
+    wordCharacters2=(current&&current.word?Array.from(current.word).filter(isHan2):[]);
+    drawings2=[];
+    const host=$2('writing-panels');
+    host.innerHTML='';
+    if(!wordCharacters2.length){
+      host.innerHTML='<div class="quiz-loading">В слове не найдено иероглифов для написания.</div>';
+      $2('submit-writing').disabled=true;return;
+    }
+    wordCharacters2.forEach((ch,i)=>host.appendChild(makeCanvas2(i)));
+    $2('submit-writing').disabled=false;
+    $2('clear').disabled=false;
+    $2('retry-writing').disabled=false;
+    $2('feedback').textContent='Пиши спокойно. Сайт не показывает ошибок и подсказок до отправки.';
+  }
+  function getBounds2(strokes){
+    const pts=strokes.flat();
+    if(!pts.length)return null;
+    const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);
+    return {minX:Math.min(...xs),maxX:Math.max(...xs),minY:Math.min(...ys),maxY:Math.max(...ys)};
+  }
+  function resample2(points,count){
+    if(!points||!points.length)return [];
+    if(points.length===1)return Array.from({length:count},()=>points[0].slice());
+    const cumulative=[0];
+    for(let i=1;i<points.length;i++){
+      cumulative.push(cumulative[i-1]+Math.hypot(points[i][0]-points[i-1][0],points[i][1]-points[i-1][1]));
+    }
+    const total=cumulative[cumulative.length-1];
+    if(total<0.001)return Array.from({length:count},()=>points[0].slice());
+    const out=[];let seg=1;
+    for(let k=0;k<count;k++){
+      const target=total*k/(count-1);
+      while(seg<cumulative.length-1&&cumulative[seg]<target)seg++;
+      const start=cumulative[seg-1],end=cumulative[seg],span=end-start;
+      const t=span?((target-start)/span):0;
+      out.push([
+        points[seg-1][0]+(points[seg][0]-points[seg-1][0])*t,
+        points[seg-1][1]+(points[seg][1]-points[seg-1][1])*t
+      ]);
+    }
+    return out;
+  }
+  function pathCost2(a,b){
+    const aa=resample2(a,36),bb=resample2(b,36);
+    if(!aa.length||!bb.length)return 1;
+    let d=0;
+    for(let i=0;i<aa.length;i++)d+=Math.hypot(aa[i][0]-bb[i][0],aa[i][1]-bb[i][1]);
+    return d/aa.length/GRID;
+  }
+  function reverse2(points){return points.slice().reverse();}
+  function scoreCharacter2(userStrokes,charData){
+    const medians=charData&&charData.medians;
+    if(!Array.isArray(medians)||!medians.length)return {unavailable:true,score:0,notes:['Для этого иероглифа нет эталонных траекторий.']};
+    const expected=medians.map(stroke=>stroke.map(p=>[Number(p[0]),GRID-Number(p[1])]));
+    const expectedBounds=getBounds2(expected),actualBounds=getBounds2(userStrokes);
+    if(!actualBounds||!userStrokes.length)return {
+      score:0,firstTry:0,expectedCount:expected.length,actualCount:0,orderNotes:[],
+      notes:['Ты пока не нарисовала этот иероглиф.']
+    };
+    const aw=Math.max(1,actualBounds.maxX-actualBounds.minX),ah=Math.max(1,actualBounds.maxY-actualBounds.minY);
+    const ew=Math.max(1,expectedBounds.maxX-expectedBounds.minX),eh=Math.max(1,expectedBounds.maxY-expectedBounds.minY);
+    const scale=Math.min(ew/aw,eh/ah);
+    const acx=(actualBounds.minX+actualBounds.maxX)/2,acy=(actualBounds.minY+actualBounds.maxY)/2;
+    const ecx=(expectedBounds.minX+expectedBounds.maxX)/2,ecy=(expectedBounds.minY+expectedBounds.maxY)/2;
+    const fitted=userStrokes.map(stroke=>stroke.map(p=>[(p[0]-acx)*scale+ecx,(p[1]-acy)*scale+ecy]));
+    const matrix=fitted.map(s=>expected.map(t=>pathCost2(s,t)));
+    const strokeScores=[],orderNotes=[],usedExpected=new Set();
+    let sum=0;
+    for(let i=0;i<fitted.length;i++){
+      const direct=(i<expected.length)?matrix[i][i]:1;
+      const rev=(i<expected.length)?pathCost2(reverse2(fitted[i]),expected[i]):1;
+      let bestIndex=0,bestCost=Infinity;
+      for(let j=0;j<expected.length;j++){if(matrix[i][j]<bestCost){bestCost=matrix[i][j];bestIndex=j;}}
+      let d=direct,reverseFlag=false;
+      if(rev+0.025<d){d=rev;reverseFlag=true;}
+      const strokeScore=Math.max(0,Math.min(100,Math.round(100*(1-d/0.24))));
+      strokeScores.push(strokeScore);sum+=strokeScore;
+      if(i<expected.length)usedExpected.add(i);
+      if(reverseFlag&&rev<0.17)orderNotes.push('Черта №'+(i+1)+' похожа на правильную, но направление, возможно, обратное.');
+      else if(bestIndex!==i&&bestCost<0.13&&bestCost+0.035<direct){
+        orderNotes.push('Черта №'+(i+1)+' больше похожа на эталонную черту №'+(bestIndex+1)+'. Возможно, нарушен порядок.');
+      } else if(i<expected.length&&direct>0.18&&strokeScore<25){
+        orderNotes.push('Форма черты №'+(i+1)+' заметно отличается от эталона.');
+      }
+    }
+    const shape=strokeScores.length?sum/strokeScores.length:0;
+    const ratioActual=aw/ah,ratioExpected=ew/eh;
+    const ratioError=Math.abs(Math.log(Math.max(.001,ratioActual/ratioExpected)));
+    const proportionScore=Math.max(0,100*(1-ratioError/1.2));
+    const coverage=Math.min(userStrokes.length,expected.length)/Math.max(userStrokes.length,expected.length);
+    const score=Math.round((shape*.85+proportionScore*.15)*(.75+.25*coverage));
+    const notes=[];
+    if(userStrokes.length<expected.length)notes.push('Недостаёт черт: ожидалось '+expected.length+', написано '+userStrokes.length+'.');
+    if(userStrokes.length>expected.length)notes.push('Лишние черты: ожидалось '+expected.length+', написано '+userStrokes.length+'.');
+    if(orderNotes.length)notes.push(...orderNotes);
+    if(!notes.length)notes.push('Явных ошибок порядка не обнаружено.');
+    const weak=strokeScores.map((v,i)=>({v:v,i:i})).filter(x=>x.v<55);
+    weak.slice(0,4).forEach(x=>notes.push('Черта №'+(x.i+1)+': контур отличается от образца ('+x.v+'%).'));
+    return {score,strokeScores,expectedCount:expected.length,actualCount:userStrokes.length,orderNotes,notes,proportionScore:Math.round(proportionScore)};
+  }
+  function createReference2(host,ch){
+    host.innerHTML='';
+    if(!window.HanziWriter){host.textContent=ch;return null;}
+    try{
+      return HanziWriter.create(host,ch,{width:105,height:105,padding:5,showCharacter:true,showOutline:false,strokeColor:'#252621',strokeWidth:3,renderer:'svg'});
+    }catch(e){host.textContent=ch;return null;}
+  }
+  function buildCharResult2(ch,index,result){
+    const card=document.createElement('div');card.className='result-char';
+    const top=document.createElement('div');top.className='result-char-top';
+    const reference=document.createElement('div');reference.className='result-reference';
+    const info=document.createElement('div');
+    const glyph=document.createElement('div');glyph.style.fontSize='30px';glyph.style.marginBottom='4px';glyph.textContent=ch;
+    const pct=document.createElement('div');pct.style.fontWeight='600';pct.textContent=result.unavailable?'Нет эталона':('Сходство: '+result.score+'%');
+    const count=document.createElement('div');count.className='muted';count.style.fontSize='11px';
+    count.textContent=result.unavailable?'':('Черт: '+result.actualCount+' из '+result.expectedCount);
+    info.appendChild(glyph);info.appendChild(pct);info.appendChild(count);
+    top.appendChild(reference);top.appendChild(info);card.appendChild(top);
+    const notes=document.createElement('div');notes.className='result-notes';
+    notes.textContent=(result.notes||[]).join(' ');
+    card.appendChild(notes);
+    const animation=document.createElement('button');animation.className='btn result-order';animation.textContent='Показать правильный порядок черт';
+    let referenceWriter=null;
+    animation.onclick=()=>{
+      if(!referenceWriter){referenceWriter=createReference2(reference,ch);}
+      if(referenceWriter&&typeof referenceWriter.animateCharacter==='function')referenceWriter.animateCharacter();
+      animation.textContent='Повторить порядок черт';
+    };
+    card.appendChild(animation);
+    if(!result.unavailable)createReference2(reference,ch);
+    return card;
+  }
+  async function submitWriting2(){
+    if(submitted2||attemptBusy2||!current)return;
+    attemptBusy2=true;
+    $2('submit-writing').disabled=true;
+    $2('clear').disabled=true;
+    $2('skip').disabled=true;
+    $2('feedback').textContent='Сохраняю написание и сравниваю его с эталоном…';
+    const wordAtSubmit=current.word;
+    const results=[];
+    try{
+      for(let i=0;i<wordCharacters2.length;i++){
+        const ch=wordCharacters2[i];
+        try{
+          if(!window.HanziWriter)throw new Error('Hanzi Writer is unavailable');
+          const charData=await HanziWriter.loadCharacterData(ch);
+          results.push({character:ch,result:scoreCharacter2(drawings2[i]||[],charData)});
+        }catch(err){
+          results.push({character:ch,result:{unavailable:true,score:0,notes:['Эталон для этого иероглифа не загрузился. Проверь интернет и попробуй позже.']}});
+        }
+      }
+      if(!current||current.word!==wordAtSubmit)return;
+      submitted2=true;
+      drawings2.forEach((_,i)=>{
+        const cv=$2('writing-panels').querySelectorAll('canvas')[i];
+        if(cv)cv.style.opacity='.72';
+      });
+      const usable=results.filter(x=>!x.result.unavailable);
+      const overall=usable.length?Math.round(usable.reduce((a,x)=>a+x.result.score,0)/usable.length):0;
+      const orderIssues=results.reduce((n,x)=>n+(x.result.orderNotes?x.result.orderNotes.length:0),0);
+      const unavailable=results.length-usable.length;
+      const success=usable.length===results.length&&overall>=78&&orderIssues===0&&usable.every(x=>x.result.actualCount===x.result.expectedCount);
+      const summary=$2('analysis-summary');
+      summary.textContent='Общее сходство формы: '+overall+'%. '+
+        (success?'Слово написано близко к эталону, заметных ошибок порядка не найдено.':
+        'Проверь разбор каждого иероглифа ниже. Ошибки не исправлялись во время письма — анализ появился только после отправки.');
+      const resultList=$2('result-list');resultList.innerHTML='';
+      results.forEach((item,i)=>resultList.appendChild(buildCharResult2(item.character,i,item.result)));
+      $2('analysis-panel').classList.remove('hidden');
+      $2('feedback').textContent='Написание сохранено. Оригинал и разбор готовы.';
+      $2('quiz-score').textContent='';
+      $2('submit-writing').disabled=true;
+      $2('clear').disabled=true;
+      $2('retry-writing').disabled=false;
+      $2('next').disabled=false;
+      $2('skip').disabled=false;
+      $2('analysis-panel').scrollIntoView({behavior:'smooth',block:'nearest'});
+      if(typeof rate==='function')rate(success);
+      let history=[];try{history=JSON.parse(localStorage.getItem('hanzi-attempt-history')||'[]')||[];}catch(e){}
+      history.unshift({word:wordAtSubmit,score:overall,success:success,date:new Date().toISOString(),
+        characters:results.map(x=>({character:x.character,score:x.result.score,notes:x.result.notes||[],unavailable:!!x.result.unavailable}))});
+      try{localStorage.setItem('hanzi-attempt-history',JSON.stringify(history.slice(0,200)));}catch(e){}
+    }catch(err){
+      console.error(err);
+      $2('feedback').textContent='Не получилось завершить проверку. Написание осталось на экране — можно повторить отправку.';
+      $2('submit-writing').disabled=false;
+      $2('clear').disabled=false;
+      $2('skip').disabled=false;
+    }finally{
+      attemptBusy2=false;
+    }
+  }
+  function retryWriting2(){
+    if(!current)return;
+    $2('analysis-panel').classList.add('hidden');
+    renderWritingPanels2();
+    $2('feedback').textContent='Новая попытка. Пиши самостоятельно — подсказок до отправки не будет.';
+    $2('next').disabled=true;
+  }
+  window.renderWritingPanels2=renderWritingPanels2;
+  $2('submit-writing').onclick=submitWriting2;
+  $2('retry-writing').onclick=retryWriting2;
+  $2('clear').onclick=renderWritingPanels2;
+  load();
+  save();
 })();
 </script>
 
