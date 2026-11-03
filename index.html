@@ -96,7 +96,7 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 </main></div></div>
 <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.7.2/dist/hanzi-writer.min.js"></script>
 <script>
-const TRANSLATIONS_URL='./hsk-russian.json';
+const TRANSLATION_FILES=['./dictionary/hsk-1.json','./dictionary/hsk-2.json','./dictionary/hsk-3.json','./dictionary/hsk-4.json','./dictionary/hsk-5.json','./dictionary/hsk-6.json','./dictionary/hsk-7-9-a.json','./dictionary/hsk-7-9-b.json'];
 const $=id=>document.getElementById(id);
 let words=[],queue=[],index=0,current=null,currentWordPage=0,stats=JSON.parse(localStorage.getItem('hanzi-stats')||'{}'),mistakes=JSON.parse(localStorage.getItem('hanzi-mistakes')||'[]');
 function parseCSV(s){let rows=[],row=[],v='',q=false;for(let i=0;i<s.length;i++){let c=s[i];if(c==='"'){if(q&&s[i+1]==='"'){v+='"';i++}else q=!q}else if(c===','&&!q){row.push(v);v=''}else if((c==='\n'||c==='\r')&&!q){if(c==='\r'&&s[i+1]==='\n')i++;row.push(v);if(row.some(x=>x.trim()))rows.push(row);row=[];v=''}else v+=c}row.push(v);if(row.some(x=>x.trim()))rows.push(row);return rows}
@@ -119,20 +119,24 @@ function convert(rows){
  return sortByPinyin(result);
 }
 async function load(forceFresh){
- $('status').textContent='Загрузка HSK со всеми русскими переводами…';
- $('feedback').textContent='Загружаю словарь…';
+ $('status').textContent='Загрузка словаря с русскими переводами…';
+ $('feedback').textContent='Загружаю все слова…';
  try{
-   const response=await fetch(TRANSLATIONS_URL+(forceFresh?'?v='+Date.now():''),{cache:forceFresh?'no-store':'default'});
-   if(!response.ok)throw Error('Файл hsk-russian.json не найден ('+response.status+')');
-   const entries=await response.json();
-   if(!Array.isArray(entries)||entries.length<10000)throw Error('Словарь неполный: '+(entries&&entries.length||0)+' записей');
+   const stamp=forceFresh?'?v='+Date.now():'';
+   const chunks=await Promise.all(TRANSLATION_FILES.map(async url=>{
+     const response=await fetch(url+stamp,{cache:forceFresh?'no-store':'default'});
+     if(!response.ok)throw Error('Не загружен файл '+url+' ('+response.status+')');
+     return response.json();
+   }));
+   const entries=chunks.flat();
+   if(entries.length!==10919)throw Error('Ожидалось 10 919 уникальных слов, загружено '+entries.length);
    words=entries.map(x=>({
      word:String(x.w||'').normalize('NFC'),
      pinyin:String(x.p||''),
      level:String(x.l||''),
      translation:String(x.t||'')
-   })).filter(x=>x.word&&x.pinyin&&x.level);
-   if(words.length<10000||words.some(x=>!x.translation))throw Error('В словаре есть записи без русского перевода');
+   })).filter(x=>x.word&&x.pinyin&&x.level&&x.translation);
+   if(words.length!==10919)throw Error('Не у всех слов найден русский перевод: '+words.length);
    sortByPinyin(words);
    $('status').textContent=words.length.toLocaleString('ru-RU')+' слов · переводы готовы';
    currentWordPage=0;
@@ -140,9 +144,9 @@ async function load(forceFresh){
  }catch(e){
    console.error('Hanzi Studio dictionary error',e);
    words=[];queue=[];
-   $('status').textContent='Не загружен файл переводов';
-   $('feedback').textContent='Добавь файл hsk-russian.json в корень GitHub-репозитория рядом с index.html, затем обнови страницу.';
-   $('counter').textContent='Ожидаю файл с русскими переводами';
+   $('status').textContent='Ошибка загрузки словаря';
+   $('feedback').textContent='Не удалось загрузить файлы русского словаря. Обнови страницу и проверь интернет.';
+   $('counter').textContent='Не удалось загрузить слова';
  }
 }
 function levelMatch(w,l){
