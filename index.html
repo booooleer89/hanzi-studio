@@ -59,7 +59,7 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 <main>
 <section id="practice">
 <h1>Практика письма</h1><div class="sub">Сначала напиши слово по памяти. Проверка появится только после сохранения.</div>
-<div class="toolbar"><select id="level"><option value="1">HSK 1 · 300</option><option value="2">HSK 2 · 500</option><option value="3">HSK 3 · 1 000</option><option value="4">HSK 4 · 2 000</option><option value="5">HSK 5 · 3 600</option><option value="6">HSK 6 · 5 400</option><option value="7-9">HSK 7–9 · 11 000</option><option value="all">Все уровни · 11 000</option></select>
+<div class="toolbar"><select id="level"><option value="1">HSK 1 · 300</option><option value="2">HSK 2 · 500</option><option value="3">HSK 3 · 1 000</option><option value="4">HSK 4 · 2 000</option><option value="5">HSK 5 · 3 600</option><option value="6">HSK 6 · 5 400</option><option value="7-9">HSK 7–9 · 5 600</option><option value="all">Все уровни · 11 000</option></select>
 <select id="mode"><option value="sequence" selected>По алфавиту (пиньинь)</option><option value="random">Случайный порядок</option><option value="mistakes">Мои ошибки</option></select><button class="btn" id="skip">Пропустить</button><button class="btn" id="reload-words">Обновить слова</button></div>
 <div class="card">
 <div class="head"><span id="counter">Подготовка словаря</span><span id="leveltag">HSK 1</span></div>
@@ -82,8 +82,9 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 </div>
 <div class="notice">Сначала ты пишешь самостоятельно — сайт не показывает контур и не исправляет тебя в процессе. После нажатия «Сохранить и проверить» сравниваются записанные траектории с эталонными чертами: примерная похожесть формы, пропорции, количество и порядок. Это геометрическая проверка по базе черт, не AI-распознавание свободного текста; результаты могут быть приблизительными.</div>
 </section>
-<section id="words" class="hidden"><h1>Словарь HSK</h1><div class="sub">Полный список HSK 3.0: поиск по иероглифам, пиньиню и русскому переводу. Сортировка по пиньиню.</div>
-<div class="toolbar"><select id="wordlevel"><option value="all">Все уровни · 11 000</option><option value="1">HSK 1 · 300</option><option value="2">HSK 2 · 500</option><option value="3">HSK 3 · 1 000</option><option value="4">HSK 4 · 2 000</option><option value="5">HSK 5 · 3 600</option><option value="6">HSK 6 · 5 400</option><option value="7-9">HSK 7–9 · 11 000</option></select><input id="search" placeholder="По-китайски, пиньиню или по-русски"></div>
+<section id="words" class="hidden"><h1>Словарь HSK</h1><div class="sub">Список HSK 3.0: поиск по иероглифам, пиньиню и русскому переводу. Сортировка по пиньиню.</div>
+<div style="margin:-10px 0 14px;font-size:13px"><a href="https://chineseplus.club/hsk/3/table/" target="_blank" rel="noopener noreferrer">Открыть актуальный список HSK 3.0 2026 с русскими переводами в Chinese+</a></div>
+<div class="toolbar"><select id="wordlevel"><option value="all">Все уровни · 11 000</option><option value="1">HSK 1 · 300</option><option value="2">HSK 2 · 500</option><option value="3">HSK 3 · 1 000</option><option value="4">HSK 4 · 2 000</option><option value="5">HSK 5 · 3 600</option><option value="6">HSK 6 · 5 400</option><option value="7-9">HSK 7–9 · 5 600</option></select><input id="search" placeholder="По-китайски, пиньиню или по-русски"></div>
 <div class="muted" id="translation-coverage" style="font-size:12px;margin:-5px 0 12px"></div>
 <div class="muted" id="wordcount"></div>
 <div style="overflow:auto;margin-top:10px"><table><thead><tr><th>Слово</th><th>Пиньинь</th><th>Уровень</th><th>Перевод</th></tr></thead><tbody id="wordrows"></tbody></table></div>
@@ -157,7 +158,8 @@ async function load(forceFresh){
  }
 }
 function levelMatch(w,l){
- if(l==='all'||l==='7-9')return true;
+ if(l==='all')return true;
+ if(l==='7-9')return w.level==='7-9';
  const target=Number(l),wordLevel=Number(w.level);
  return Number.isFinite(target)&&Number.isFinite(wordLevel)&&wordLevel<=target;
 }
@@ -243,7 +245,7 @@ function renderWords(){
  const start=currentWordPage*pageSize,end=Math.min(start+pageSize,a.length);
  $('wordcount').textContent=a.length.toLocaleString('ru-RU')+' слов · '+(a.length?('показаны '+(start+1)+'–'+end):'ничего не найдено');
  const ruCount=words.filter(w=>!!w.translation).length;
- $('translation-coverage').textContent='Сразу показаны переводы из русскоязычного словаря для '+ruCount.toLocaleString('ru-RU')+' из '+words.length.toLocaleString('ru-RU')+' слов. Для остальных — прямые ссылки на подробные статьи Chinese+.';
+ $('translation-coverage').textContent='Локальные русские значения есть у '+ruCount.toLocaleString('ru-RU')+' из '+words.length.toLocaleString('ru-RU')+' записей. Для остальных открывается подробный поиск в Chinese+.';
  $('wordrows').innerHTML=a.slice(start,end).map(w=>{
    const cell=w.translation?esc(w.translation):'<a class="btn" style="display:inline-block;padding:5px 8px;font-size:12px;text-decoration:none" href="'+chinesePlusUrl(w.word)+'" target="_blank" rel="noopener noreferrer">Русский перевод</a>';
    return '<tr><td>'+esc(w.word)+'</td><td>'+esc(w.pinyin)+'</td><td>HSK '+esc(w.level)+'</td><td>'+cell+'</td></tr>';
