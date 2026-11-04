@@ -16,7 +16,7 @@ select,input{border:1px solid var(--line);background:white;padding:10px 12px;bor
 .card{background:white;border:1px solid var(--line);border-radius:14px;padding:20px}.head{display:flex;justify-content:space-between;color:var(--muted);font-size:12px}
 .center{text-align:center;padding:22px 0}.hanzi{font:64px/1.3 "Noto Serif CJK SC","Songti SC",serif;letter-spacing:4px;min-height:0}.pinyin{font-size:18px;color:#686b64;margin-top:6px}
 .btn{border:1px solid var(--line);background:white;border-radius:8px;padding:10px 14px;color:#333;cursor:pointer;font:inherit}.primary{background:#252621;color:white;border-color:#252621}
-.translation{font-size:15px;color:#555;margin-top:10px}.pad{max-width:760px;margin:auto}.padlabel{font-size:12px;color:var(--muted);margin:8px 0}
+.translation{font-size:15px;color:#555;margin-top:10px}.translation-row{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;max-width:650px;margin:12px auto 0}.short-translation{font-size:15px;color:#555}.translation-detail{white-space:pre-wrap;text-align:left;line-height:1.65;background:#f7f8f5;border:1px solid var(--line);padding:13px;border-radius:8px;margin:10px auto 0;max-width:650px;max-height:340px;overflow:auto}.detail-toggle{font-size:11px;padding:4px 8px;white-space:nowrap}.translation-cell{min-width:190px}.translation-preview-line{display:flex;align-items:center;justify-content:space-between;gap:8px}.detail-panel{margin-top:8px;max-height:230px;overflow:auto;white-space:pre-wrap;line-height:1.5;font-size:12px;color:#555;background:#f7f8f5;border-radius:7px;padding:9px}.profile-box{background:white;border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0}.profile-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.profile-row input{min-width:220px;flex:1}.profile-note{font-size:12px;color:var(--muted);margin-top:9px}.progress-tip{background:#f7f8f5;border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:18px 0;color:#555}.progress-tip strong{display:block;margin-bottom:4px;color:#292b27}.pad{max-width:760px;margin:auto}.padlabel{font-size:12px;color:var(--muted);margin:8px 0}
 #writing-panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin-top:12px}
 .write-cell{min-width:0}.write-cell-label{font-size:12px;color:var(--muted);margin:0 0 5px}
 .write-canvas{width:100%;aspect-ratio:1;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;background-color:#fff;background-image:linear-gradient(to right,transparent calc(50% - .5px),#f0f0ec 50%,transparent calc(50% + .5px)),linear-gradient(to bottom,transparent calc(50% - .5px),#f0f0ec 50%,transparent calc(50% + .5px))}
@@ -55,17 +55,17 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 <div class="shell">
 <header class="top"><div><div class="brand">Hanzi <span>Studio</span></div><div class="muted" style="font-size:12px">Тренажёр китайского · HSK 3.0</div></div><div class="muted" id="status">Загрузка словаря…</div></header>
 <div class="layout">
-<aside class="side"><button class="nav active" data-view="practice">Прописывание</button><button class="nav" data-view="words">Словарь</button><button class="nav" data-view="progress">Мой прогресс</button></aside>
+<aside class="side"><button class="nav active" data-view="practice">Практика письма</button><button class="nav" data-view="words">Словарь</button><button class="nav" data-view="progress">Мой прогресс</button></aside>
 <main>
 <section id="practice">
 <h1>Практика письма</h1><div class="sub">Сначала напиши слово по памяти. Проверка появится только после сохранения.</div>
-<div class="toolbar"><select id="level"><option value="1">HSK 1</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option><option value="5">HSK 5</option><option value="6">HSK 6</option><option value="7-9">HSK 7–9</option><option value="all">Все уровни</option></select>
+<div class="toolbar"><select id="level"><option value="1">HSK 1 · 300 слов</option><option value="2">HSK 2 · 200 слов</option><option value="3">HSK 3 · 500 слов</option><option value="4">HSK 4 · 1 000 слов</option><option value="5">HSK 5 · 1 600 слов</option><option value="6">HSK 6 · 1 800 слов</option><option value="7-9">HSK 7–9 · 5 560 слов</option><option value="all">Все уровни</option></select>
 <select id="mode"><option value="sequence" selected>По алфавиту (пиньинь)</option><option value="random">Случайный порядок</option><option value="mistakes">Мои ошибки</option></select><button class="btn" id="skip">Пропустить</button><button class="btn" id="reload-words">Обновить слова</button></div>
 <div class="card">
 <div class="head"><span id="counter">Подготовка словаря</span><span id="leveltag">HSK 1</span></div>
 <div class="center"><div class="pinyin" id="pinyin">hǎo</div>
-<div style="margin-top:12px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap"><button class="btn" id="showtranslation">Показать перевод</button></div>
-<div class="translation hidden" id="translation"></div>
+<div class="translation-row"><span class="short-translation" id="short-translation"></span><button class="btn detail-toggle" id="showtranslation" type="button">Подробнее</button></div>
+<div class="translation translation-detail hidden" id="translation"></div>
 <div class="muted" style="font-size:12px;margin-top:12px">Оригинал и разбор ошибок появятся только после отправки слова.</div></div>
 <div class="pad"><div class="padlabel">Напиши иероглифы по памяти. Никаких подсказок во время письма.</div>
 <div id="writing-panels"></div>
@@ -90,15 +90,22 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 <div class="actions" id="word-pager" style="align-items:center;justify-content:space-between">
 <button class="btn" id="word-prev" disabled>← Назад</button><span class="muted" id="word-page-label" style="font-size:12px">Страница 1</span><button class="btn" id="word-next">Дальше →</button>
 </div></section>
-<section id="progress" class="hidden"><h1>Мой прогресс</h1><div class="sub">Результаты автоматической проверки сохраняются в этом браузере.</div>
+<section id="progress" class="hidden"><h1>Мой прогресс</h1><div class="sub">Сохраняй свои результаты под названием электронной почты. Пароль не нужен.</div>
+<div class="profile-box"><strong>Профиль прогресса</strong><div class="profile-row"><input id="profile-email" type="email" placeholder="Твоя электронная почта" autocomplete="email"><button class="btn primary" id="save-profile" type="button">Сохранить профиль</button></div><div class="profile-note" id="profile-status">Почта используется как имя профиля. Данные хранятся в этом браузере; синхронизация между устройствами пока не подключена.</div></div>
 <div class="stats"><div class="stat"><b id="s-total">0</b><span>Попыток</span></div><div class="stat"><b id="s-right">0</b><span>Получилось</span></div><div class="stat"><b id="s-rate">0%</b><span>Слова без ошибок</span></div></div>
+<div class="progress-tip"><strong>Не расстраивайся, если не получается.</strong> Иероглифы запоминаются постепенно. Ошибки — часть обучения, а не показатель твоих способностей. Сделай паузу, повтори слово и попробуй ещё раз. Маленькие шаги тоже считаются.</div>
 <h3>Слова для повторения</h3><div id="mistake-list" class="muted"></div><button class="btn" id="reset" style="margin-top:20px">Сбросить статистику</button></section>
 </main></div></div>
 <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.7.2/dist/hanzi-writer.min.js"></script>
 <script>
 const TRANSLATION_FILES=['./dictionary/hsk-1.json','./dictionary/hsk-2.json','./dictionary/hsk-3.json','./dictionary/hsk-4.json','./dictionary/hsk-5.json','./dictionary/hsk-6.json','./dictionary/hsk-7-9-a.json','./dictionary/hsk-7-9-b.json'];
 const $=id=>document.getElementById(id);
-let words=[],queue=[],index=0,current=null,currentWordPage=0,stats=JSON.parse(localStorage.getItem('hanzi-stats')||'{}'),mistakes=JSON.parse(localStorage.getItem('hanzi-mistakes')||'[]');
+let words=[],queue=[],index=0,current=null,currentWordPage=0,stats={},mistakes=[],activeEmail=localStorage.getItem('hanzi-active-email')||'',restoreSession=null;
+function readStore(key,fallback){try{const value=localStorage.getItem(key);return value?JSON.parse(value):fallback}catch(e){return fallback}}
+function profileKey(email){return 'hanzi-profile:'+email}
+function readProfile(email){return email?readStore(profileKey(email),null):null}
+const initialProfile=readProfile(activeEmail);
+if(initialProfile){stats=initialProfile.stats||{};mistakes=initialProfile.mistakes||[];restoreSession=initialProfile.session||null}else{stats=readStore('hanzi-stats',{});mistakes=readStore('hanzi-mistakes',[])}
 function parseCSV(s){let rows=[],row=[],v='',q=false;for(let i=0;i<s.length;i++){let c=s[i];if(c==='"'){if(q&&s[i+1]==='"'){v+='"';i++}else q=!q}else if(c===','&&!q){row.push(v);v=''}else if((c==='\n'||c==='\r')&&!q){if(c==='\r'&&s[i+1]==='\n')i++;row.push(v);if(row.some(x=>x.trim()))rows.push(row);row=[];v=''}else v+=c}row.push(v);if(row.some(x=>x.trim()))rows.push(row);return rows}
 function pinyinSortKey(s){return (s||'').toLowerCase().normalize('NFD').replace(/u\u0308/g,'v').replace(/[\u0300-\u036f]/g,'');}
 function sortByPinyin(list){return list.sort((a,b)=>pinyinSortKey(a.pinyin).localeCompare(pinyinSortKey(b.pinyin),'en')||a.word.localeCompare(b.word,'zh'))}
@@ -129,18 +136,24 @@ async function load(forceFresh){
      return response.json();
    }));
    const entries=chunks.flat();
-   if(entries.length!==10919)throw Error('Ожидалось 10 919 уникальных слов, загружено '+entries.length);
+   if(entries.length!==10960)throw Error('Ожидалось 10 960 записей HSK 3.0, загружено '+entries.length);
+   const expectedCounts={'1':300,'2':200,'3':500,'4':1000,'5':1600,'6':1800,'7-9':5560};
+   const actualCounts=entries.reduce((a,x)=>(a[String(x.l)]=(a[String(x.l)]||0)+1,a),{});
+   for(const level in expectedCounts)if(actualCounts[level]!==expectedCounts[level])throw Error('HSK '+level+': ожидалось '+expectedCounts[level]+', загружено '+(actualCounts[level]||0));
    words=entries.map(x=>({
      word:String(x.w||'').normalize('NFC'),
      pinyin:String(x.p||''),
      level:String(x.l||''),
      translation:String(x.t||'')
    })).filter(x=>x.word&&x.pinyin&&x.level&&x.translation);
-   if(words.length!==10919)throw Error('Не у всех слов найден русский перевод: '+words.length);
+   if(words.length!==10960)throw Error('Не у всех слов найден подробный русский перевод: '+words.length);
    sortByPinyin(words);
    $('status').textContent=words.length.toLocaleString('ru-RU')+' слов · переводы готовы';
    currentWordPage=0;
-   build();
+   applyProfileSession();
+   $('profile-email').value=activeEmail;
+   $('profile-status').textContent=activeEmail?'Активный профиль: '+activeEmail+'. Пароль не нужен. Прогресс хранится в этом браузере.':'Почта используется как имя профиля. Данные хранятся в этом браузере; синхронизация между устройствами пока не подключена.';
+   progress();
  }catch(e){
    console.error('Hanzi Studio dictionary error',e);
    words=[];queue=[];
@@ -151,9 +164,26 @@ async function load(forceFresh){
 }
 function levelMatch(w,l){
  if(l==='all')return true;
- if(l==='7-9')return w.level==='7-9';
- const target=Number(l),wordLevel=Number(w.level);
- return Number.isFinite(target)&&Number.isFinite(wordLevel)&&wordLevel<=target;
+ return String(w.level)===String(l);
+}
+function shortTranslation(value){
+ const lines=String(value||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+ const useful=lines.filter(x=>! /^(?:I{1,3}|IV|V|VI|VII|VIII|IX|X)(?:\b|[,\s])/i.test(x));
+ let line=useful.find(x=>/^\d+[.)]\s*/.test(x))||useful.find(x=>x.length>2)||'';
+ line=line.replace(/^\d+[.)]\s*/,'').replace(/^(?:междом\.|гл\.|сущ\.|прил\.|наречие|частица|служ\.\s*сл\.)\s*/i,'').trim();
+ line=line.split(/\s+\d+[.)]\s+/)[0].replace(/\s+/g,' ').trim();
+ return line.length>72?line.slice(0,69).replace(/[\s,;:]+$/,'')+'…':line;
+}
+function applyProfileSession(){
+ if(!words.length)return;
+ const saved=restoreSession;
+ restoreSession=null;
+ if(saved){$('level').value=saved.level||'1';$('mode').value=saved.mode||'sequence'}
+ build();
+ if(saved&&saved.word){
+  const found=queue.findIndex(w=>w.word===saved.word&&w.pinyin===saved.pinyin&&w.level===saved.wordLevel);
+  if(found>=0){index=found;show()}
+ }
 }
 function filtered(){let l=$('level').value;return words.filter(w=>levelMatch(w,l)&&($('mode').value!=='mistakes'||mistakes.includes(w.word)))}
 function build(){queue=filtered();if($('mode').value==='random')queue.sort(()=>Math.random()-.5);index=0;show()}
@@ -168,14 +198,16 @@ function show(){
    $('submit-writing').disabled=true;
    $('next').disabled=false;
    clearCanvas();
+   save();
    return;
  }
  if(index>=queue.length)index=0;
  current=queue[index];
  $('pinyin').textContent=current.pinyin;
- $('translation').textContent=current.translation||'Перевод отсутствует в источнике словаря.';
+ $('short-translation').textContent=shortTranslation(current.translation)||'Перевод не найден';
+ $('translation').textContent=current.translation||'Подробный перевод отсутствует в исходной таблице.';
  $('translation').classList.add('hidden');
- $('showtranslation').textContent='Показать перевод';
+ $('showtranslation').textContent='Подробнее';
  $('counter').textContent='Слово '+(index+1)+' из '+queue.length;
  $('leveltag').textContent='HSK '+current.level;
  $('feedback').textContent='Напиши слово по памяти. Проверка не будет подсказывать во время письма.';
@@ -185,14 +217,23 @@ function show(){
  $('next').disabled=false;
  $('skip').disabled=false;
  clearCanvas();
+ save();
 }
 function rate(ok){stats.total=(stats.total||0)+1;if(ok){stats.right=(stats.right||0)+1;mistakes=mistakes.filter(x=>x!==current.word);$('feedback').textContent='Слово засчитано.'}else{stats.wrong=(stats.wrong||0)+1;if(!mistakes.includes(current.word))mistakes.push(current.word);$('feedback').textContent='Слово добавлено в повторение.'}save();progress()}
-function save(){localStorage.setItem('hanzi-stats',JSON.stringify(stats));localStorage.setItem('hanzi-mistakes',JSON.stringify(mistakes));$('accuracy').textContent='Верно: '+(stats.right||0)+' · Повторить: '+(stats.wrong||0)}
+function save(){
+ localStorage.setItem('hanzi-stats',JSON.stringify(stats));
+ localStorage.setItem('hanzi-mistakes',JSON.stringify(mistakes));
+ if(activeEmail){
+  const session={level:$('level').value,mode:$('mode').value,word:current?.word||'',pinyin:current?.pinyin||'',wordLevel:current?.level||$('level').value};
+  localStorage.setItem(profileKey(activeEmail),JSON.stringify({stats,mistakes,session}));
+ }
+ $('accuracy').textContent='Верно: '+(stats.right||0)+' · Повторить: '+(stats.wrong||0);
+}
 $('showtranslation').onclick=()=>{
  let e=$('translation'),b=$('showtranslation');
- if(!e.classList.contains('hidden')){e.classList.add('hidden');b.textContent='Показать перевод';return;}
- e.classList.remove('hidden');b.textContent='Скрыть перевод';
- e.textContent=current&&current.translation?current.translation:'Перевод отсутствует в словаре.';
+ if(!e.classList.contains('hidden')){e.classList.add('hidden');b.textContent='Подробнее';return;}
+ e.classList.remove('hidden');b.textContent='Скрыть';
+ e.textContent=current&&current.translation?current.translation:'Подробный перевод отсутствует в исходной таблице.';
 };
 $('next').onclick=()=>{index++;show()};
 $('skip').onclick=()=>{index++;show()};
@@ -212,19 +253,46 @@ function renderWords(){
  const ruCount=words.filter(w=>!!w.translation).length;
  $('translation-coverage').textContent='Русский перевод встроен у '+ruCount.toLocaleString('ru-RU')+' из '+words.length.toLocaleString('ru-RU')+' слов.';
  $('wordrows').innerHTML=a.slice(start,end).map(w=>{
-   const cell=esc(w.translation||'Перевод не найден');
-   return '<tr><td>'+esc(w.word)+'</td><td>'+esc(w.pinyin)+'</td><td>HSK '+esc(w.level)+'</td><td>'+cell+'</td></tr>';
+   const brief=esc(shortTranslation(w.translation)||'Перевод не найден');
+   const detail=w.translation?'<div class="detail-panel hidden">'+esc(w.translation)+'</div>':'';
+   const more=w.translation?'<button class="btn detail-toggle" type="button" aria-expanded="false">Подробнее</button>':'';
+   return '<tr><td>'+esc(w.word)+'</td><td>'+esc(w.pinyin)+'</td><td>HSK '+esc(w.level)+'</td><td><div class="translation-cell"><div class="translation-preview-line"><span>'+brief+'</span>'+more+'</div>'+detail+'</div></td></tr>';
  }).join('');
  $('word-prev').disabled=currentWordPage===0;
  $('word-next').disabled=currentWordPage>=totalPages-1;
  $('word-page-label').textContent='Страница '+(currentWordPage+1)+' из '+totalPages;
 }
+$('wordrows').onclick=event=>{
+ const button=event.target.closest('.detail-toggle');
+ if(!button)return;
+ const cell=button.closest('.translation-cell');
+ const panel=cell&&cell.querySelector('.detail-panel');
+ if(!panel)return;
+ const opening=panel.classList.contains('hidden');
+ panel.classList.toggle('hidden');
+ button.textContent=opening?'Скрыть':'Подробнее';
+ button.setAttribute('aria-expanded',opening?'true':'false');
+};
 $('word-prev').onclick=()=>{if(currentWordPage>0){currentWordPage--;renderWords();}};
 $('word-next').onclick=()=>{currentWordPage++;renderWords();};
 
 $('wordlevel').onchange=()=>{currentWordPage=0;renderWords();};
 $('search').oninput=()=>{currentWordPage=0;renderWords();};
-$('reload-words').onclick=()=>load(true);$('reset').onclick=()=>{if(confirm('Сбросить статистику?')){stats={};mistakes=[];save();progress()}};
+$('reload-words').onclick=()=>load(true);
+$('save-profile').onclick=()=>{
+ const email=$('profile-email').value.trim().toLowerCase();
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){$('profile-status').textContent='Проверь адрес почты и попробуй ещё раз.';return}
+ if(email===activeEmail){save();$('profile-status').textContent='Профиль '+email+' сохранён. Пароль не нужен; данные доступны в этом браузере.';return}
+ save();
+ const saved=readProfile(email);
+ if(saved){stats=saved.stats||{};mistakes=saved.mistakes||[];restoreSession=saved.session||null;}
+ else if(activeEmail){stats={};mistakes=[];restoreSession=null;}
+ activeEmail=email;localStorage.setItem('hanzi-active-email',email);
+ $('profile-email').value=email;
+ $('profile-status').textContent='Активный профиль: '+email+'. Пароль не нужен. Прогресс хранится в этом браузере.';
+ applyProfileSession();progress();save();
+};
+$('reset').onclick=()=>{if(confirm('Сбросить статистику для этого профиля?')){stats={};mistakes=[];save();progress()}};
 document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));b.classList.add('active');['practice','words','progress'].forEach(id=>$(id).classList.toggle('hidden',id!==b.dataset.view));if(b.dataset.view==='words')renderWords();if(b.dataset.view==='progress')progress()});
 // Загрузка словаря запускается после инициализации нового поля письма.
 </script>
