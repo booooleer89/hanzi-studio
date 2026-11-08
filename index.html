@@ -59,7 +59,7 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 <main>
 <section id="practice">
 <h1>Практика письма</h1><div class="sub">Сначала напиши слово по памяти. Проверка появится только после сохранения.</div>
-<div class="toolbar"><select id="level"><option value="1">HSK 1 · 300 слов</option><option value="2">HSK 2 · 200 слов</option><option value="3">HSK 3 · 500 слов</option><option value="4">HSK 4 · 1 000 слов</option><option value="5">HSK 5 · 1 600 слов</option><option value="6">HSK 6 · 1 800 слов</option><option value="7-9">HSK 7–9 · 5 600 слов</option><option value="all">Все уровни</option></select>
+<div class="toolbar"><select id="level"><option value="1">HSK 1 · 300 слов</option><option value="2">HSK 2 · 200 слов</option><option value="3">HSK 3 · 500 слов</option><option value="4">HSK 4 · 1 000 слов</option><option value="5">HSK 5 · 1 600 слов</option><option value="6">HSK 6 · 1 800 слов</option><option value="7-9">HSK 7–9 · 5 600 слов</option><option value="extra">Дополнительные слова · 189</option><option value="all">Все уровни</option></select>
 <select id="mode"><option value="sequence" selected>По алфавиту (пиньинь)</option><option value="random">Случайный порядок</option><option value="mistakes">Мои ошибки</option></select><button class="btn" id="skip">Пропустить</button></div>
 <div class="card">
 <div class="head"><span id="counter">Подготовка словаря</span><span id="leveltag">HSK 1</span></div>
@@ -82,7 +82,7 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 <div class="notice">Сначала ты пишешь самостоятельно — сайт не показывает контур и не исправляет тебя в процессе. После отправки сравниваются форма и пропорции. Порядок черт не влияет на процент. В словаре используются русские словарные статьи из файлов Chinese+ для Anki.</div>
 </section>
 <section id="words" class="hidden"><h1>Словарь HSK</h1><div class="sub">Обновлённый список HSK 2025 с русскими переводами.  Поиск по иероглифам, пиньиню и русскому переводу.</div>
-<div class="toolbar"><select id="wordlevel"><option value="all">Все уровни</option><option value="1">HSK 1</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option><option value="5">HSK 5</option><option value="6">HSK 6</option><option value="7-9">HSK 7–9</option></select><input id="search" placeholder="По-китайски, пиньиню или по-русски"></div>
+<div class="toolbar"><select id="wordlevel"><option value="all">Все уровни</option><option value="1">HSK 1</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option><option value="5">HSK 5</option><option value="6">HSK 6</option><option value="7-9">HSK 7–9</option><option value="extra">Дополнительные слова</option></select><input id="search" placeholder="По-китайски, пиньиню или по-русски"></div>
 <div class="muted" id="translation-coverage" style="font-size:12px;margin:-5px 0 12px"></div>
 <div class="muted" id="wordcount"></div>
 <div style="overflow:auto;margin-top:10px"><table><thead><tr><th>Слово</th><th>Пиньинь</th><th>Уровень</th><th>Перевод</th></tr></thead><tbody id="wordrows"></tbody></table></div>
@@ -97,7 +97,7 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 </main></div></div>
 <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.7.2/dist/hanzi-writer.min.js"></script>
 <script>
-const TRANSLATION_FILES=['./dictionary/hsk-1.json','./dictionary/hsk-2.json','./dictionary/hsk-3.json','./dictionary/hsk-4.json','./dictionary/hsk-5.json','./dictionary/hsk-6.json','./dictionary/hsk-7-9-a.json','./dictionary/hsk-7-9-b.json'];
+const TRANSLATION_FILES=['./dictionary/hsk-1.json','./dictionary/hsk-2.json','./dictionary/hsk-3.json','./dictionary/hsk-4.json','./dictionary/hsk-5.json','./dictionary/hsk-6.json','./dictionary/hsk-7-9-a.json','./dictionary/hsk-7-9-b.json','./dictionary/additional.json'];
 const $=id=>document.getElementById(id);
 let words=[],queue=[],index=0,current=null,currentWordPage=0,stats={},mistakes=[],activeEmail=localStorage.getItem('hanzi-active-email')||'',restoreSession=null;
 function readStore(key,fallback){try{const value=localStorage.getItem(key);return value?JSON.parse(value):fallback}catch(e){return fallback}}
@@ -135,8 +135,8 @@ async function load(forceFresh){
      return response.json();
    }));
    const entries=chunks.flat();
-   if(entries.length!==10989)throw Error('Ожидалось 10 989 слов HSK 2025, загружено '+entries.length);
-   const expectedCounts={'1':300,'2':199,'3':500,'4':999,'5':1598,'6':1798,'7-9':5595};
+   if(entries.length!==11178)throw Error('Ожидалось 11 178 слов HSK 2025 и дополнительного списка, загружено '+entries.length);
+   const expectedCounts={'1':300,'2':199,'3':500,'4':999,'5':1598,'6':1798,'7-9':5595,'extra':189};
    const actualCounts=entries.reduce((a,x)=>(a[String(x.l)]=(a[String(x.l)]||0)+1,a),{});
    for(const level in expectedCounts)if(actualCounts[level]!==expectedCounts[level])throw Error('HSK '+level+': ожидалось '+expectedCounts[level]+', загружено '+(actualCounts[level]||0));
    words=entries.map(x=>({
@@ -145,7 +145,7 @@ async function load(forceFresh){
      level:String(x.l||''),
      translation:String(x.t||'')
    })).filter(x=>x.word&&x.pinyin&&x.level&&x.translation);
-   if(words.length!==10989)throw Error('Не у всех слов найден короткий русский перевод: '+words.length);
+   if(words.length!==11178)throw Error('Не у всех слов найден короткий русский перевод: '+words.length);
    sortByPinyin(words);
    $('status').textContent=words.length.toLocaleString('ru-RU')+' слов · переводы готовы';
    currentWordPage=0;
@@ -205,7 +205,7 @@ function show(){
  $('pinyin').textContent=current.pinyin;
  $('short-translation').textContent=shortTranslation(current.translation)||'Перевод не найден';
  $('counter').textContent='Слово '+(index+1)+' из '+queue.length;
- $('leveltag').textContent='HSK '+current.level;
+ $('leveltag').textContent=current.level==='extra'?'Дополнительные слова':'HSK '+current.level;
  $('feedback').textContent='Напиши слово по памяти. Проверка не будет подсказывать во время письма.';
  $('feedback').style.color='';
  $('analysis-panel').classList.add('hidden');
@@ -246,7 +246,7 @@ function renderWords(){
    const brief=esc(shortTranslation(w.translation)||'Перевод не найден');
    const detail=w.translation?'<div class="detail-panel hidden">'+esc(w.translation)+'</div>':'';
    const more=w.translation?'<button class="btn detail-toggle" type="button" aria-expanded="false">Подробнее</button>':'';
-   return '<tr><td>'+esc(w.word)+'</td><td>'+esc(w.pinyin)+'</td><td>HSK '+esc(w.level)+'</td><td><div class="translation-cell"><div class="translation-preview-line"><span>'+brief+'</span>'+more+'</div>'+detail+'</div></td></tr>';
+   return '<tr><td>'+esc(w.word)+'</td><td>'+esc(w.pinyin)+'</td><td>'+(w.level==='extra'?'Дополнительно':'HSK '+esc(w.level))+'</td><td><div class="translation-cell"><div class="translation-preview-line"><span>'+brief+'</span>'+more+'</div>'+detail+'</div></td></tr>';
  }).join('');
  $('word-prev').disabled=currentWordPage===0;
  $('word-next').disabled=currentWordPage>=totalPages-1;
