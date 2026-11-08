@@ -208,7 +208,6 @@ $('save').onclick=async()=>{
   await putTemplate(record);saved.set(record.character,record);dirty=false;
   $('message').textContent='Сохранено. Этот рисунок уже будет использоваться для сравнения в тренажёре.';
   $('saved-badge').textContent='Образец сохранён';
-  setTimeout(()=>{if(!dirty&&currentTask)closeEditor();},700);
  }catch(error){console.error(error);$('message').textContent=error.message||'Не удалось сохранить в этом браузере.';}
  finally{$('save').disabled=false;}
 };
