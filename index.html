@@ -234,12 +234,12 @@ function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;
 function progress(){$('s-total').textContent=stats.total||0;$('s-right').textContent=stats.right||0;$('s-rate').textContent=(stats.total?Math.round((stats.right||0)/stats.total*100):0)+'%';$('mistake-list').innerHTML=mistakes.length?mistakes.map(w=>'<span style="font-size:20px;margin:4px">'+esc(w)+'</span>').join(''):'Ошибок пока нет.'}
 function normalizePinyinSearch(value){
  return String(value||'').toLowerCase().normalize('NFD')
-  .replace(/u\\u0308/g,'v').replace(/u:/g,'v')
-  .replace(/[\\u0300-\\u036f]/g,'').replace(/[1-5]/g,'')
-  .replace(/[^a-zv]/g,'');
+  .replace(/u\u0308/g,'u').replace(/v/g,'u').replace(/u:/g,'u')
+  .replace(/[\u0300-\u036f]/g,'').replace(/[1-5]/g,'')
+  .replace(/[^a-z]/g,'');
 }
 function isPinyinQuery(value){
- return /[a-z]/i.test(value)&&/^[\\p{Script=Latin}\\p{M}\\d\\s:'’\\-]+$/u.test(value);
+ return /[a-z]/i.test(value)&&/^[\p{Script=Latin}\p{M}\d\s:'’\-]+$/u.test(value);
 }
 function renderWords(){
  let l=$('wordlevel').value,raw=$('search').value.trim(),q=raw.toLocaleLowerCase('ru-RU'),
