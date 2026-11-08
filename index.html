@@ -584,7 +584,7 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     const pathScore=pathScores.reduce((sum,x)=>sum+x,0)/Math.max(1,pathScores.length);
     const countGap=Math.abs(actual.length-expected.length);
     const countScore=100*Math.exp(-.12*countGap);
-    let score=Math.round(imageScore*.78+pathScore*.16+proportionScore*.04+countScore*.02);
+    let score=Math.round(pathScore*.48+imageScore*.46+proportionScore*.04+countScore*.02);
     // A low whole-glyph match cannot be rescued by several coincidentally similar lines.
     if(imageScore<60)score=Math.min(score,64);
     score=Math.max(0,Math.min(100,score));
@@ -595,7 +595,12 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     else if(imageScore>=60)notes.push('Часть контура совпадает; проверь расположение деталей.');
     else notes.push('Общий контур заметно отличается от образца.');
     notes.push('Порядок и направление штрихов не учитываются.');
-    return {score,imageScore,strokeScores:pathScores,expectedCount:expected.length,actualCount:actual.length,notes,proportionScore:Math.round(proportionScore)};
+    const matchedCount=pathScores.slice(0,actual.length).filter((value,i)=>{
+      const targetIndex=assignment[i];
+      return targetIndex>=0&&targetIndex<expected.length&&value>=55;
+    }).length;
+    notes.push('Похоже на '+matchedCount+' из '+expected.length+' черт. Порядок и направление не важны.');
+    return {score,imageScore,strokeScores:pathScores,matchedCount,expectedCount:expected.length,actualCount:actual.length,notes,proportionScore:Math.round(proportionScore)};
   }
   function createReference2(host,ch){
     host.innerHTML='';
@@ -635,7 +640,7 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     const pct=document.createElement('div');pct.style.fontWeight='600';
     pct.textContent=result.unavailable?'Эталон недоступен':'Сходство формы: '+result.score+'%';
     const count=document.createElement('div');count.className='muted';count.style.fontSize='11px';
-    count.textContent=result.unavailable?'':'Черты: '+result.actualCount+' из '+result.expectedCount;
+    count.textContent=result.unavailable?'':'Совпало черт: '+(result.matchedCount||0)+' из '+result.expectedCount+' · нарисовано '+result.actualCount;
     info.appendChild(pct);info.appendChild(count);card.appendChild(info);
     const notes=document.createElement('div');notes.className='result-notes';notes.textContent=(result.notes||[]).join(' ');card.appendChild(notes);
     if(!result.unavailable&&window.HanziWriter){
@@ -687,7 +692,7 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
       const summary=$2('analysis-summary');
       summary.textContent='Общее сходство формы: '+overall+'%. '+
         (success?'Все иероглифы похожи на образец. Порядок штрихов не учитывался.':
-        'Сравни форму каждого знака ниже. Чтобы засчитать слово, каждый иероглиф должен набрать не меньше 68%.');
+        'Сравни форму и совпавшие черты ниже. Порядок и направление не важны; для зачёта каждый знак должен набрать не меньше 68%.');
       const resultList=$2('result-list');resultList.innerHTML='';
       results.forEach((item,i)=>resultList.appendChild(buildCharResult2(item.character,i,item.result,drawings2[i]||[])));
       $2('analysis-panel').classList.remove('hidden');
