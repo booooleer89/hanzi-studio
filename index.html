@@ -157,7 +157,7 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 </div>
 <div class="next"><span class="muted" id="accuracy" style="font-size:12px">Слова: 0 · Повторить: 0</span><button class="btn primary" id="next">Следующее слово →</button></div>
 </div>
-<div class="notice">Сначала ты пишешь самостоятельно — сайт не показывает контур и не исправляет тебя в процессе. После отправки оцениваются общий контур и расположение частей. Порядок и разделение на движения не влияют на оценку. В словаре используются русские словарные статьи из файлов Chinese+ для Anki.</div>
+<div class="notice">Сначала ты пишешь самостоятельно — сайт не показывает контур и не исправляет тебя в процессе. После отправки распознаватель ищет наиболее похожие иероглифы. Порядок написания может отличаться. Для распознавания используется <a href="https://github.com/gugray/hanzi_lookup" target="_blank" rel="noopener">HanziLookup</a> (LGPL-3.0), данные иероглифов — <a href="https://github.com/gugray/hanzi_lookup/blob/01f90c3ab99a8fadf0696c28e5eb097223c500db/LICENSE-APL" target="_blank" rel="noopener">Arphic Public License</a>. В словаре используются русские словарные статьи из файлов Chinese+ для Anki.</div>
 </section>
 <section id="words" class="hidden"><h1>Словарь HSK</h1><div class="sub">Слова по уровням HSK с русскими переводами. Поиск по иероглифам, пиньиню и русскому переводу.</div>
 <div class="toolbar"><select id="wordlevel"><option value="all">Все уровни</option><option value="1">HSK 1</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option><option value="5">HSK 5</option><option value="6">HSK 6</option><option value="7-9">HSK 7–9</option></select><input id="search" placeholder="По-китайски, пиньиню или по-русски"></div>
@@ -369,6 +369,7 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
   const $2 = id => document.getElementById(id);
   const SIZE = 640, GRID = 1024;
   let drawings2 = [], wordCharacters2 = [], submitted2 = false, attemptBusy2 = false;
+  let lookupWorker2=null,lookupReady2=null,lookupRequests2=new Map(),lookupRequestId2=0,lookupReadyReject2=null;
 
   function isHan2(ch){
     const cp=ch.codePointAt(0);
@@ -443,77 +444,73 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);
     return {minX:Math.min(...xs),maxX:Math.max(...xs),minY:Math.min(...ys),maxY:Math.max(...ys)};
   }
-  function shapeMask2(strokes,bounds,size){
-    const canvas=document.createElement('canvas');
-    canvas.width=size;canvas.height=size;
-    const ctx=canvas.getContext('2d');
-    ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#000';ctx.fillStyle='#000';ctx.lineWidth=4.25;
-    const width=Math.max(1,bounds.maxX-bounds.minX),height=Math.max(1,bounds.maxY-bounds.minY),padding=10;
-    const scale=Math.min((size-padding*2)/width,(size-padding*2)/height);
-    const offsetX=(size-width*scale)/2-bounds.minX*scale;
-    const offsetY=(size-height*scale)/2-bounds.minY*scale;
-    const point=p=>[p[0]*scale+offsetX,p[1]*scale+offsetY];
-    strokes.forEach(stroke=>{
-      if(!stroke||!stroke.length)return;
-      const first=point(stroke[0]);
-      ctx.beginPath();
-      if(stroke.length===1){ctx.arc(first[0],first[1],ctx.lineWidth/2,0,Math.PI*2);ctx.fill();return;}
-      ctx.moveTo(first[0],first[1]);
-      for(let i=1;i<stroke.length;i++){const p=point(stroke[i]);ctx.lineTo(p[0],p[1]);}
-      ctx.stroke();
+  const LOOKUP_BASE2='https://cdn.jsdelivr.net/gh/gugray/hanzi_lookup@01f90c3ab99a8fadf0696c28e5eb097223c500db/web_demo/';
+  function resetLookupWorker2(error){
+    if(lookupWorker2){try{lookupWorker2.terminate()}catch(e){}}
+    lookupWorker2=null;lookupReady2=null;
+    if(lookupReadyReject2){const reject=lookupReadyReject2;lookupReadyReject2=null;reject(error);}
+    for(const request of lookupRequests2.values())request.reject(error);
+    lookupRequests2.clear();
+  }
+  function ensureLookupWorker2(){
+    if(lookupReady2)return lookupReady2;
+    lookupReady2=new Promise((resolve,reject)=>{
+      lookupReadyReject2=reject;
+      try{
+        const workerCode=`importScripts(${JSON.stringify(LOOKUP_BASE2+'hanzi_lookup.js')});
+self.onmessage=async function(event){
+  const data=event.data||{};
+  if(data.type==='init'){
+    try{await wasm_bindgen(${JSON.stringify(LOOKUP_BASE2+'hanzi_lookup_bg.wasm')});postMessage({type:'ready'});}
+    catch(error){postMessage({type:'init-error',message:String(error&&error.message||error)});}
+  }else if(data.type==='lookup'){
+    try{postMessage({type:'lookup',id:data.id,matches:JSON.parse(wasm_bindgen.lookup(data.strokes,data.limit||8))});}
+    catch(error){postMessage({type:'lookup-error',id:data.id,message:String(error&&error.message||error)});}
+  }
+};`;
+        const objectUrl=URL.createObjectURL(new Blob([workerCode],{type:'text/javascript'}));
+        lookupWorker2=new Worker(objectUrl);
+        URL.revokeObjectURL(objectUrl);
+        lookupWorker2.onmessage=event=>{
+          const data=event.data||{};
+          if(data.type==='ready'){lookupReadyReject2=null;resolve();return;}
+          if(data.type==='init-error'){resetLookupWorker2(new Error(data.message||'Не удалось загрузить распознавание'));return;}
+          const request=lookupRequests2.get(data.id);
+          if(!request)return;
+          lookupRequests2.delete(data.id);
+          if(data.type==='lookup')request.resolve(Array.isArray(data.matches)?data.matches:[]);
+          else request.reject(new Error(data.message||'Не удалось распознать рисунок'));
+        };
+        lookupWorker2.onerror=event=>resetLookupWorker2(new Error(event.message||'Не удалось загрузить распознавание'));
+        lookupWorker2.postMessage({type:'init'});
+      }catch(error){resetLookupWorker2(error instanceof Error?error:new Error(String(error)));}
     });
-    const alpha=ctx.getImageData(0,0,size,size).data,mask=new Uint8Array(size*size);
-    for(let i=0;i<mask.length;i++)if(alpha[i*4+3]>70)mask[i]=1;
-    return mask;
+    return lookupReady2;
   }
-  function dilateMask2(mask,size,radius){
-    const expanded=new Uint8Array(mask.length),radiusSquared=radius*radius;
-    for(let y=0;y<size;y++)for(let x=0;x<size;x++){
-      if(!mask[y*size+x])continue;
-      for(let dy=-radius;dy<=radius;dy++){
-        const yy=y+dy;if(yy<0||yy>=size)continue;
-        for(let dx=-radius;dx<=radius;dx++){
-          if(dx*dx+dy*dy>radiusSquared)continue;
-          const xx=x+dx;if(xx>=0&&xx<size)expanded[yy*size+xx]=1;
-        }
-      }
-    }
-    return expanded;
-  }
-  function scoreCharacter2(userStrokes,charData){
-    const medians=charData&&charData.medians;
-    if(!Array.isArray(medians)||!medians.length)return {unavailable:true,score:0,notes:['Для этого иероглифа нет эталонных данных.']};
-    const expected=medians.map(stroke=>stroke.map(p=>[Number(p[0]),900-Number(p[1])]));
-    const expectedBounds=getBounds2(expected),actualBounds=getBounds2(userStrokes);
-    if(!expectedBounds)return {unavailable:true,score:0,notes:['Для этого иероглифа нет эталонных данных.']};
-    if(!actualBounds||!userStrokes.length)return {score:0,notes:['Пока нет написания для сравнения.']};
-    const aw=Math.max(1,actualBounds.maxX-actualBounds.minX),ah=Math.max(1,actualBounds.maxY-actualBounds.minY);
-    const ew=Math.max(1,expectedBounds.maxX-expectedBounds.minX),eh=Math.max(1,expectedBounds.maxY-expectedBounds.minY);
-    const scale=Math.min(ew/aw,eh/ah);
-    const acx=(actualBounds.minX+actualBounds.maxX)/2,acy=(actualBounds.minY+actualBounds.maxY)/2;
-    const ecx=(expectedBounds.minX+expectedBounds.maxX)/2,ecy=(expectedBounds.minY+expectedBounds.maxY)/2;
-    const fitted=userStrokes.map(stroke=>stroke.map(p=>[(p[0]-acx)*scale+ecx,(p[1]-acy)*scale+ecy]));
-    const size=128;
-    const expectedMask=shapeMask2(expected,expectedBounds,size);
-    const actualMask=shapeMask2(fitted,expectedBounds,size);
-    const expectedCount=expectedMask.reduce((sum,value)=>sum+value,0);
-    const actualCount=actualMask.reduce((sum,value)=>sum+value,0);
-    if(!expectedCount||!actualCount)return {score:0,notes:['Пока не удалось сравнить общий контур.']};
-    const expectedNear=dilateMask2(expectedMask,size,5),actualNear=dilateMask2(actualMask,size,5);
-    let matchedActual=0,matchedExpected=0;
-    for(let i=0;i<actualMask.length;i++){
-      if(actualMask[i]&&expectedNear[i])matchedActual++;
-      if(expectedMask[i]&&actualNear[i])matchedExpected++;
-    }
-    const precision=matchedActual/actualCount,recall=matchedExpected/expectedCount;
-    const contourScore=precision+recall?2*precision*recall/(precision+recall)*100:0;
-    const ratioError=Math.abs(Math.log(Math.max(.001,(aw/ah)/(ew/eh))));
-    const proportionScore=Math.max(0,100*(1-ratioError/1.2));
-    const score=Math.round(contourScore*.92+proportionScore*.08);
-    const notes=[score>=62
-      ?'Общая форма похожа на образец. Порядок и разделение на отдельные движения не оцениваются.'
-      :'Сравни общий контур и расположение основных частей с образцом. Порядок движений не оценивается.'];
-    return {score,contourScore:Math.round(contourScore),proportionScore:Math.round(proportionScore),notes};
+  async function recognizeCharacter2(strokes,target){
+    await ensureLookupWorker2();
+    const normalized=strokes.map(stroke=>stroke.map(point=>[
+      Math.max(0,Math.min(255,Math.round(Number(point[0])*255/GRID))),
+      Math.max(0,Math.min(255,Math.round(Number(point[1])*255/GRID)))
+    ]));
+    const id=++lookupRequestId2;
+    const matches=await new Promise((resolve,reject)=>{
+      lookupRequests2.set(id,{resolve,reject});
+      lookupWorker2.postMessage({type:'lookup',id,strokes:normalized,limit:8});
+    });
+    const rank=matches.findIndex(match=>match.hanzi===target);
+    const best=matches[0]||null;
+    const targetMatch=rank>=0?matches[rank]:null;
+    const topScore=Number(best&&best.score)||0;
+    const targetScore=Number(targetMatch&&targetMatch.score)||0;
+    const relativeGap=targetMatch?(topScore-targetScore)/Math.max(.25,Math.abs(topScore)):Infinity;
+    const recognized=rank===0||(rank===1&&relativeGap<=.16);
+    const closeMatches=matches.slice(0,4).map(match=>match.hanzi);
+    let note;
+    if(recognized)note=rank===0?'Распознаватель выбрал нужный знак первым.':'Нужный знак входит в число ближайших совпадений.';
+    else if(best)note='Похоже, написано «'+best.hanzi+'». В задании нужен знак «'+target+'».';
+    else note='Не удалось подобрать похожий знак. Попробуй написать его крупнее и яснее.';
+    return {recognized,rank,score:recognized?100:0,best:best&&best.hanzi,matches:closeMatches,notes:[note]};
   }
   function createReference2(host,ch){
     host.innerHTML='';
@@ -552,9 +549,10 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     refPanel.appendChild(refLabel);refPanel.appendChild(refBox);
     compare.appendChild(yourPanel);compare.appendChild(refPanel);card.appendChild(compare);
     const info=document.createElement('div');
-    const pct=document.createElement('div');pct.style.fontWeight='600';pct.textContent=result.unavailable?'Нет эталона':('Сходство формы: '+result.score+'%');
+    const pct=document.createElement('div');pct.style.fontWeight='600';
+    pct.textContent=result.unavailable?'Распознавание недоступно':result.recognized?(result.rank===0?'Иероглиф распознан':'Иероглиф среди ближайших совпадений'):(result.best&&result.best!==ch?'Похоже, написано «'+result.best+'»':'Иероглиф не совпал с заданием');
     const count=document.createElement('div');count.className='muted';count.style.fontSize='11px';
-    count.textContent=result.unavailable?'':'Оценивается общий контур; порядок движений не важен.';
+    count.textContent=result.matches&&result.matches.length?'Похожие варианты: '+result.matches.join(' · '):'';
     info.appendChild(pct);info.appendChild(count);card.appendChild(info);
     const notes=document.createElement('div');notes.className='result-notes';notes.textContent=(result.notes||[]).join(' ');card.appendChild(notes);
     if(!result.unavailable&&window.HanziWriter){
@@ -578,18 +576,21 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     $2('submit-writing').disabled=true;
     $2('clear').disabled=true;
     $2('skip').disabled=true;
-    $2('feedback').textContent='Сохраняю написание и сравниваю его с эталоном…';
+    $2('feedback').textContent='Распознаю написанные иероглифы…';
     const wordAtSubmit=current.word;
     const results=[];
     try{
       for(let i=0;i<wordCharacters2.length;i++){
         const ch=wordCharacters2[i];
         try{
-          if(!window.HanziWriter)throw new Error('Hanzi Writer is unavailable');
-          const charData=await HanziWriter.loadCharacterData(ch);
-          results.push({character:ch,result:scoreCharacter2(drawings2[i]||[],charData)});
+          results.push({character:ch,result:await recognizeCharacter2(drawings2[i]||[],ch)});
         }catch(err){
-          results.push({character:ch,result:{unavailable:true,score:0,notes:['Эталон для этого иероглифа не загрузился. Проверь интернет и попробуй позже.']}});
+          console.error('Hanzi recognition error',err);
+          $2('feedback').textContent='Распознавание не загрузилось. Проверь интернет и отправь написание ещё раз.';
+          $2('submit-writing').disabled=false;
+          $2('clear').disabled=false;
+          $2('skip').disabled=false;
+          return;
         }
       }
       if(!current||current.word!==wordAtSubmit)return;
@@ -598,13 +599,13 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
         const cv=$2('writing-panels').querySelectorAll('canvas')[i];
         if(cv)cv.style.opacity='.72';
       });
-      const usable=results.filter(x=>!x.result.unavailable);
-      const overall=usable.length?Math.round(usable.reduce((a,x)=>a+x.result.score,0)/usable.length):0;
-      const success=usable.length===results.length&&overall>=62&&usable.every(x=>x.result.score>=50);
+      const correctCount=results.filter(x=>x.result.recognized).length;
+      const overall=results.length?Math.round(correctCount/results.length*100):0;
+      const success=results.length>0&&correctCount===results.length;
       const summary=$2('analysis-summary');
-      summary.textContent='Общее сходство формы: '+overall+'%. '+
-        (success?'Форма слова близка к эталону. Порядок черт не учитывался.':
-        'Сравни общий силуэт и расположение основных частей с образцом. Порядок движений не оценивается.');
+      summary.textContent=success
+        ?'Все иероглифы распознаны как нужные.'
+        :'Совпало '+correctCount+' из '+results.length+' иероглифов. Посмотри на похожие варианты ниже.';
       const resultList=$2('result-list');resultList.innerHTML='';
       results.forEach((item,i)=>resultList.appendChild(buildCharResult2(item.character,i,item.result,drawings2[i]||[])));
       $2('analysis-panel').classList.remove('hidden');
