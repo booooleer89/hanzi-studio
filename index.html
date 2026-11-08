@@ -504,7 +504,7 @@ self.onmessage=async function(event){
     const topScore=Number(best&&best.score)||0;
     const targetScore=Number(targetMatch&&targetMatch.score)||0;
     const relativeGap=targetMatch?(topScore-targetScore)/Math.max(.25,Math.abs(topScore)):Infinity;
-    const recognized=rank===0||(rank===1&&relativeGap<=.16);
+    const recognized=rank===0||(rank===1&&relativeGap<=.10);
     const closeMatches=matches.slice(0,4).map(match=>match.hanzi);
     let note;
     if(recognized)note=rank===0?'Распознаватель выбрал нужный знак первым.':'Нужный знак входит в число ближайших совпадений.';
