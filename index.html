@@ -543,8 +543,8 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     let nearA=0,nearB=0,intersection=0;
     const tolerance=18;
     for(let i=0;i<a.mask.length;i++){
-      if(a.mask[i]){nearA+=Math.max(0,1-da[i]/tolerance);if(b.mask[i])intersection++;}
-      if(b.mask[i])nearB+=Math.max(0,1-db[i]/tolerance);
+      if(a.mask[i]){nearA+=Math.max(0,1-db[i]/tolerance);if(b.mask[i])intersection++;}
+      if(b.mask[i])nearB+=Math.max(0,1-da[i]/tolerance);
     }
     const soft=(nearA/a.count+nearB/b.count)/2*100;
     const dice=200*intersection/(a.count+b.count);
