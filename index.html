@@ -127,6 +127,8 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
  #wordcount{font-size:13px;line-height:1.4}
 }
 
+.personal-page-link{display:inline-flex;margin:0 0 14px}
+@media(max-width:480px){.personal-page-link{width:100%}}
 </style>
 </head>
 <body>
@@ -135,6 +137,7 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 <div class="layout">
 <aside class="side"><button class="nav active" data-view="practice">Практика письма</button><button class="nav" data-view="words">Словарь</button><button class="nav" data-view="progress">Мой прогресс</button></aside>
 <main>
+<a class="btn personal-page-link" href="./handwriting.html">Мои образцы письма</a>
 <section id="practice">
 <h1>Практика письма</h1><div class="sub">Сначала напиши слово по памяти. Проверка появится только после сохранения.</div>
 <div class="toolbar"><select id="level"><option value="1">HSK 1 · 554 слов</option><option value="2">HSK 2 · 301 слово</option><option value="3">HSK 3 · 561 слово</option><option value="4">HSK 4 · 1 096 слов</option><option value="5">HSK 5 · 1 724 слова</option><option value="6">HSK 6 · 2 111 слов</option><option value="7-9">HSK 7–9 · 6 226 слов</option><option value="all">Все уровни</option></select>
@@ -157,7 +160,7 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 </div>
 <div class="next"><span class="muted" id="accuracy" style="font-size:12px">Слова: 0 · Повторить: 0</span><button class="btn primary" id="next">Следующее слово →</button></div>
 </div>
-<div class="notice">Сначала ты пишешь самостоятельно — сайт не показывает контур и не исправляет тебя в процессе. После отправки сравниваются общий контур, пропорции и количество штрихов. Порядок и направление написания не оцениваются. В словаре используются русские словарные статьи из файлов Chinese+ для Anki.</div>
+<div class="notice">Сначала ты пишешь самостоятельно — сайт не показывает контур и не исправляет тебя в процессе. Если ты сохранила личный образец, написание сравнивается с ним по форме. Порядок и направление черт не оцениваются. В словаре используются русские словарные статьи из файлов Chinese+ для Anki.</div>
 </section>
 <section id="words" class="hidden"><h1>Словарь HSK</h1><div class="sub">Слова по уровням HSK с русскими переводами. Поиск по иероглифам, пиньиню и русскому переводу.</div>
 <div class="toolbar"><select id="wordlevel"><option value="all">Все уровни</option><option value="1">HSK 1</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option><option value="5">HSK 5</option><option value="6">HSK 6</option><option value="7-9">HSK 7–9</option></select><input id="search" placeholder="По-китайски, пиньиню или по-русски"></div>
@@ -369,6 +372,29 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
   const $2 = id => document.getElementById(id);
   const SIZE = 640, GRID = 1024;
   let drawings2 = [], wordCharacters2 = [], submitted2 = false, attemptBusy2 = false;
+  const PERSONAL_DB2='hanzi-studio-personal-writing',PERSONAL_STORE2='characters';
+  let personalDbPromise2=null;
+  function openPersonalDB2(){
+    if(!personalDbPromise2)personalDbPromise2=new Promise((resolve,reject)=>{
+      if(!('indexedDB' in window)){reject(new Error('Личные образцы недоступны в этом браузере'));return;}
+      const request=indexedDB.open(PERSONAL_DB2,1);
+      request.onupgradeneeded=()=>{const db=request.result;if(!db.objectStoreNames.contains(PERSONAL_STORE2))db.createObjectStore(PERSONAL_STORE2,{keyPath:'character'});};
+      request.onsuccess=()=>resolve(request.result);
+      request.onerror=()=>reject(request.error||new Error('Не удалось открыть личные образцы'));
+    });
+    return personalDbPromise2;
+  }
+  async function getPersonalTemplate2(character){
+    try{
+      const db=await openPersonalDB2();
+      return await new Promise((resolve,reject)=>{
+        const tx=db.transaction(PERSONAL_STORE2,'readonly');
+        const request=tx.objectStore(PERSONAL_STORE2).get(character);
+        request.onsuccess=()=>resolve(request.result||null);
+        request.onerror=()=>reject(request.error);
+      });
+    }catch(error){console.warn('Personal handwriting template unavailable',error);return null;}
+  }
 
   function isHan2(ch){
     const cp=ch.codePointAt(0);
@@ -559,9 +585,13 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     return Math.round(soft*.76+dice*.24);
   }
   function scoreCharacter2(userStrokes,charData){
+    const personalStrokes=charData&&Array.isArray(charData.personalStrokes)&&charData.personalStrokes.length?charData.personalStrokes:null;
     const medians=charData&&charData.medians;
-    if(!Array.isArray(medians)||!medians.length)return {unavailable:true,score:0,notes:['Для этого иероглифа нет эталона.']};
-    const expected=medians.map(stroke=>stroke.map(p=>[Number(p[0]),900-Number(p[1])]));
+    if(!personalStrokes&&(!Array.isArray(medians)||!medians.length))return {unavailable:true,score:0,notes:['Для этого иероглифа нет эталона.']};
+    const usingPersonal=!!personalStrokes;
+    const expected=usingPersonal
+      ?personalStrokes.map(stroke=>stroke.map(p=>[Number(p[0]),Number(p[1])]))
+      :medians.map(stroke=>stroke.map(p=>[Number(p[0]),900-Number(p[1])]));
     const actual=(userStrokes||[]).filter(stroke=>Array.isArray(stroke)&&stroke.length);
     const actualBounds=getBounds2(actual),expectedBounds=getBounds2(expected);
     if(!actualBounds)return {score:0,expectedCount:expected.length,actualCount:0,matchedCount:0,notes:['Ты пока не нарисовала этот иероглиф.']};
@@ -589,7 +619,8 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     else if(contourScore>=60)notes.push('Часть контура совпадает; проверь расположение деталей.');
     else notes.push('Общий контур заметно отличается от образца.');
     notes.push('Похоже на '+matchedCount+' из '+expected.length+' черт. Порядок, направление и объединение движений не важны.');
-    return {score,imageScore:contourScore,lineScore:Math.round(lineScore),matchedCount,expectedCount:expected.length,actualCount:actual.length,notes,proportionScore:Math.round(proportionScore)};
+    if(usingPersonal)notes.push('Сравниваем с твоим сохранённым рисунком.');
+    return {score,imageScore:contourScore,lineScore:Math.round(lineScore),matchedCount,expectedCount:expected.length,actualCount:actual.length,personal:usingPersonal,notes,proportionScore:Math.round(proportionScore)};
   }
   function createReference2(host,ch){
     host.innerHTML='';
@@ -620,10 +651,11 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     const yourBox=document.createElement('div');yourBox.className='result-preview-box';yourBox.appendChild(createUserPreview2(userStrokes||[]));
     yourPanel.appendChild(yourLabel);yourPanel.appendChild(yourBox);
     const refPanel=document.createElement('div');refPanel.className='result-preview-panel';
-    const refLabel=document.createElement('div');refLabel.className='result-preview-label';refLabel.textContent='Печатный эталон';
+    const refLabel=document.createElement('div');refLabel.className='result-preview-label';refLabel.textContent=result.personalTemplate?'Твой образец':'Печатный эталон';
     const refBox=document.createElement('div');refBox.className='result-preview-box';
-    const printed=document.createElement('div');printed.className='printed-glyph';printed.textContent=ch;
-    refBox.appendChild(printed);refPanel.appendChild(refLabel);refPanel.appendChild(refBox);
+    if(result.personalTemplate)refBox.appendChild(createUserPreview2(result.personalTemplate));
+    else{const printed=document.createElement('div');printed.className='printed-glyph';printed.textContent=ch;refBox.appendChild(printed);}
+    refPanel.appendChild(refLabel);refPanel.appendChild(refBox);
     compare.appendChild(yourPanel);compare.appendChild(refPanel);card.appendChild(compare);
     const info=document.createElement('div');
     const pct=document.createElement('div');pct.style.fontWeight='600';
@@ -660,9 +692,16 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
       for(let i=0;i<wordCharacters2.length;i++){
         const ch=wordCharacters2[i];
         try{
-          if(!window.HanziWriter)throw new Error('Hanzi Writer is unavailable');
-          const charData=await HanziWriter.loadCharacterData(ch);
-          results.push({character:ch,result:scoreCharacter2(drawings2[i]||[],charData)});
+          const personal=await getPersonalTemplate2(ch);
+          let charData;
+          if(personal&&Array.isArray(personal.strokes)&&personal.strokes.length)charData={personalStrokes:personal.strokes};
+          else{
+            if(!window.HanziWriter)throw new Error('Hanzi Writer is unavailable');
+            charData=await HanziWriter.loadCharacterData(ch);
+          }
+          const result=scoreCharacter2(drawings2[i]||[],charData);
+          if(personal&&charData.personalStrokes)result.personalTemplate=personal.strokes;
+          results.push({character:ch,result});
         }catch(err){
           console.error('Hanzi reference error',err);
           results.push({character:ch,result:{unavailable:true,score:0,notes:['Эталон не загрузился. Проверь интернет и попробуй позже.']}});
