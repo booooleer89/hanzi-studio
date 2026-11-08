@@ -60,12 +60,11 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 <section id="practice">
 <h1>Практика письма</h1><div class="sub">Сначала напиши слово по памяти. Проверка появится только после сохранения.</div>
 <div class="toolbar"><select id="level"><option value="1">HSK 1 · 300 слов</option><option value="2">HSK 2 · 200 слов</option><option value="3">HSK 3 · 500 слов</option><option value="4">HSK 4 · 1 000 слов</option><option value="5">HSK 5 · 1 600 слов</option><option value="6">HSK 6 · 1 800 слов</option><option value="7-9">HSK 7–9 · 5 560 слов</option><option value="all">Все уровни</option></select>
-<select id="mode"><option value="sequence" selected>По алфавиту (пиньинь)</option><option value="random">Случайный порядок</option><option value="mistakes">Мои ошибки</option></select><button class="btn" id="skip">Пропустить</button><button class="btn" id="reload-words">Обновить слова</button></div>
+<select id="mode"><option value="sequence" selected>По алфавиту (пиньинь)</option><option value="random">Случайный порядок</option><option value="mistakes">Мои ошибки</option></select><button class="btn" id="skip">Пропустить</button></div>
 <div class="card">
 <div class="head"><span id="counter">Подготовка словаря</span><span id="leveltag">HSK 1</span></div>
 <div class="center"><div class="pinyin" id="pinyin">hǎo</div>
-<div class="translation-row"><span class="short-translation" id="short-translation"></span><button class="btn detail-toggle" id="showtranslation" type="button">Подробнее</button></div>
-<div class="translation translation-detail hidden" id="translation"></div>
+<div class="translation-row"><span class="short-translation" id="short-translation"></span></div>
 <div class="muted" style="font-size:12px;margin-top:12px">Оригинал и разбор ошибок появятся только после отправки слова.</div></div>
 <div class="pad"><div class="padlabel">Напиши иероглифы по памяти. Никаких подсказок во время письма.</div>
 <div id="writing-panels"></div>
@@ -205,9 +204,6 @@ function show(){
  current=queue[index];
  $('pinyin').textContent=current.pinyin;
  $('short-translation').textContent=shortTranslation(current.translation)||'Перевод не найден';
- $('translation').textContent=current.translation||'Подробный перевод отсутствует в исходной таблице.';
- $('translation').classList.add('hidden');
- $('showtranslation').textContent='Подробнее';
  $('counter').textContent='Слово '+(index+1)+' из '+queue.length;
  $('leveltag').textContent='HSK '+current.level;
  $('feedback').textContent='Напиши слово по памяти. Проверка не будет подсказывать во время письма.';
@@ -229,12 +225,6 @@ function save(){
  }
  $('accuracy').textContent='Верно: '+(stats.right||0)+' · Повторить: '+(stats.wrong||0);
 }
-$('showtranslation').onclick=()=>{
- let e=$('translation'),b=$('showtranslation');
- if(!e.classList.contains('hidden')){e.classList.add('hidden');b.textContent='Подробнее';return;}
- e.classList.remove('hidden');b.textContent='Скрыть';
- e.textContent=current&&current.translation?current.translation:'Подробный перевод отсутствует в исходной таблице.';
-};
 $('next').onclick=()=>{index++;show()};
 $('skip').onclick=()=>{index++;show()};
 $('level').onchange=build;$('mode').onchange=build;$('clear').onclick=clearCanvas;
@@ -278,7 +268,6 @@ $('word-next').onclick=()=>{currentWordPage++;renderWords();};
 
 $('wordlevel').onchange=()=>{currentWordPage=0;renderWords();};
 $('search').oninput=()=>{currentWordPage=0;renderWords();};
-$('reload-words').onclick=()=>load(true);
 $('save-profile').onclick=()=>{
  const email=$('profile-email').value.trim().toLowerCase();
  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){$('profile-status').textContent='Проверь адрес почты и попробуй ещё раз.';return}
