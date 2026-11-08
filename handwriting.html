@@ -47,7 +47,7 @@ canvas{width:min(100%,540px);aspect-ratio:1;display:block;margin:auto;border:1px
 <select id="level"><option value="all">Все уровни</option><option value="1">HSK 1</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option><option value="5">HSK 5</option><option value="6">HSK 6</option><option value="7-9">HSK 7–9</option></select>
 <select id="filter"><option value="all">Все слова</option><option value="unwritten">Есть непрописанные</option><option value="written">Все прописаны</option></select>
 </div>
-<div id="summary" class="muted"></div>
+<div id="summary" class="muted"></div><div id="wordcount" class="muted" style="font-size:12px;margin-bottom:8px"></div>
 <div id="word-list" class="word-list"></div>
 <div class="pager"><button id="prev" class="btn" disabled>← Назад</button><span id="page-label" class="muted">Страница 1</span><button id="next" class="btn">Дальше →</button></div>
 <div class="notice">Написания хранятся в этом браузере и не публикуются. На другом устройстве они автоматически не появятся. Для сравнения сайт использует только форму твоего образца — порядок письма не важен.</div>
@@ -68,7 +68,7 @@ canvas{width:min(100%,540px);aspect-ratio:1;display:block;margin:auto;border:1px
 const DB_NAME='hanzi-studio-personal-writing',DB_VERSION=1,STORE='characters';
 const FILES=['./dictionary/hsk-1.json','./dictionary/hsk-2.json','./dictionary/hsk-3.json','./dictionary/hsk-4.json','./dictionary/hsk-5.json','./dictionary/hsk-6.json','./dictionary/hsk-7-9-a.json','./dictionary/hsk-7-9-b.json','./dictionary/hsk30-2021-zitou-additions.json','./dictionary/hsk30-2021-chineseplus-advanced-additions.json'];
 const $=id=>document.getElementById(id),SIZE=640,GRID=1024;
-let dbPromise=null,words=[],saved=new Map(),page=0,pageRows=[],currentTask=null,strokes=[],activeStroke=null,dirty=false;
+let dbPromise=null,words=[],saved=new Map(),page=0,pageRows=[],currentTask=null,strokes=[],activeStroke=null,dirty=false,uniqueCharCount=0;
 function openDB(){
  if(!dbPromise)dbPromise=new Promise((resolve,reject)=>{
   if(!('indexedDB' in window)){reject(new Error('В этом браузере нельзя сохранить образцы.'));return;}
@@ -110,7 +110,7 @@ function levelMatches(word,value){return value==='all'||(value==='7-9'?String(wo
 function searchMatches(word,query){
  if(!query)return true;
  const q=query.toLocaleLowerCase('ru-RU');
- return String(word.w).toLocaleLowerCase().includes(q)||String(word.t||'').toLocaleLowerCase('ru-RU').includes(q)||normalizePinyin(word.p).includes(normalizePinyin(query));
+ const pinyinQuery=normalizePinyin(query);return String(word.w).toLocaleLowerCase().includes(q)||String(word.t||'').toLocaleLowerCase('ru-RU').includes(q)||(pinyinQuery&&normalizePinyin(word.p).includes(pinyinQuery));
 }
 function render(){
  const level=$('level').value,filter=$('filter').value,query=$('search').value.trim();
@@ -126,6 +126,7 @@ function render(){
  const start=page*pageSize;
  pageRows=filtered.slice(start,start+pageSize);
  $('summary').textContent=saved.size.toLocaleString('ru-RU')+' иероглифов сохранено · '+filtered.length.toLocaleString('ru-RU')+' слов в списке';
+ $('status').textContent=saved.size.toLocaleString('ru-RU')+' из '+uniqueCharCount.toLocaleString('ru-RU')+' иероглифов прописано';
  $('word-list').innerHTML=pageRows.map((w,rowIndex)=>{
   const chars=uniqueChars(w.w),done=chars.filter(ch=>saved.has(ch)).length,complete=chars.length>0&&done===chars.length;
   const status=complete?'✓ Все иероглифы прописаны':done?done+' из '+chars.length+' прописано':'Пока не прописано';
@@ -218,9 +219,9 @@ async function load(){
   const chunks=await Promise.all(FILES.map(async url=>{const response=await fetch(url+stamp,{cache:'no-store'});if(!response.ok)throw new Error('Не загружен '+url);return response.json();}));
   words=chunks.flat().filter(w=>w&&w.w&&w.p&&w.l);
   const records=await allTemplates();saved=new Map(records.map(record=>[record.character,record]));
-  const unique=new Set();words.forEach(w=>uniqueChars(w.w).forEach(ch=>unique.add(ch)));
+  const unique=new Set();words.forEach(w=>uniqueChars(w.w).forEach(ch=>unique.add(ch)));uniqueCharCount=unique.size;
   const done=Array.from(unique).filter(ch=>saved.has(ch)).length;
-  $('status').textContent=done.toLocaleString('ru-RU')+' из '+unique.size.toLocaleString('ru-RU')+' иероглифов прописано';
+  $('status').textContent=done.toLocaleString('ru-RU')+' из '+uniqueCharCount.toLocaleString('ru-RU')+' иероглифов прописано';
   $('wordcount').textContent=words.length.toLocaleString('ru-RU')+' слов в словаре';
   render();
  }catch(error){
