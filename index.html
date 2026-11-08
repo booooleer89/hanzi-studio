@@ -461,40 +461,35 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     }
     return result;
   }
-  function pathCost2(a,b){
-    const aa=resample2(a,36),bb=resample2(b,36);
-    if(!aa.length||!bb.length)return 1;
-    let d=0;
-    for(let i=0;i<aa.length;i++)d+=Math.hypot(aa[i][0]-bb[i][0],aa[i][1]-bb[i][1]);
-    return d/aa.length/GRID;
+  function normalizeStrokeCloud2(strokes,bounds,size){
+    if(!bounds)return [];
+    const w=Math.max(1,bounds.maxX-bounds.minX),h=Math.max(1,bounds.maxY-bounds.minY);
+    const scale=Math.min((size-24)/w,(size-24)/h);
+    const cx=(bounds.minX+bounds.maxX)/2,cy=(bounds.minY+bounds.maxY)/2;
+    const tx=size/2-cx*scale,ty=size/2-cy*scale;
+    return strokes.map(stroke=>{
+      const fitted=stroke.map(p=>[p[0]*scale+tx,p[1]*scale+ty]);
+      let length=0;
+      for(let i=1;i<fitted.length;i++)length+=Math.hypot(fitted[i][0]-fitted[i-1][0],fitted[i][1]-fitted[i-1][1]);
+      const samples=Math.max(8,Math.min(40,Math.ceil(length/5)));
+      return resample2(fitted,samples);
+    });
   }
-  function reverse2(points){return points.slice().reverse();}
-  function strokeAssignment2(costs){
-    const n=costs.length;if(!n)return [];
-    const u=new Array(n+1).fill(0),v=new Array(n+1).fill(0);
-    const p=new Array(n+1).fill(0),way=new Array(n+1).fill(0);
-    for(let row=1;row<=n;row++){
-      p[0]=row;let col0=0;
-      const minv=new Array(n+1).fill(Infinity),used=new Array(n+1).fill(false);
-      do{
-        used[col0]=true;const row0=p[col0];let delta=Infinity,col1=0;
-        for(let col=1;col<=n;col++){
-          if(used[col])continue;
-          const cur=costs[row0-1][col-1]-u[row0]-v[col];
-          if(cur<minv[col]){minv[col]=cur;way[col]=col0;}
-          if(minv[col]<delta){delta=minv[col];col1=col;}
-        }
-        for(let col=0;col<=n;col++){
-          if(used[col]){u[p[col]]+=delta;v[col]-=delta;}
-          else minv[col]-=delta;
-        }
-        col0=col1;
-      }while(p[col0]!==0);
-      do{const col1=way[col0];p[col0]=p[col1];col0=col1;}while(col0!==0);
+  function directedPointCoverage2(from,to,tolerance){
+    if(!from.length||!to.length)return 0;
+    let sum=0;
+    for(const point of from){
+      let nearest=Infinity;
+      for(const candidate of to){
+        const distance=Math.hypot(point[0]-candidate[0],point[1]-candidate[1]);
+        if(distance<nearest)nearest=distance;
+      }
+      sum+=Math.max(0,1-nearest/tolerance);
     }
-    const result=new Array(n).fill(-1);
-    for(let col=1;col<=n;col++)if(p[col])result[p[col]-1]=col-1;
-    return result;
+    return sum/from.length*100;
+  }
+  function pointCloudSimilarity2(a,b,tolerance){
+    return (directedPointCoverage2(a,b,tolerance)+directedPointCoverage2(b,a,tolerance))/2;
   }
   function renderInkMask2(strokes,size){
     const canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;
@@ -569,51 +564,32 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     const expected=medians.map(stroke=>stroke.map(p=>[Number(p[0]),900-Number(p[1])]));
     const actual=(userStrokes||[]).filter(stroke=>Array.isArray(stroke)&&stroke.length);
     const actualBounds=getBounds2(actual),expectedBounds=getBounds2(expected);
-    if(!actualBounds)return {score:0,expectedCount:expected.length,actualCount:0,notes:['Ты пока не нарисовала этот иероглиф.']};
+    if(!actualBounds)return {score:0,expectedCount:expected.length,actualCount:0,matchedCount:0,notes:['Ты пока не нарисовала этот иероглиф.']};
 
     const size=128,userMask=renderInkMask2(actual,size),targetMask=renderInkMask2(expected,size);
-    const imageScore=maskSimilarity2(userMask,targetMask,size);
+    const contourScore=maskSimilarity2(userMask,targetMask,size);
     const aw=Math.max(1,actualBounds.maxX-actualBounds.minX),ah=Math.max(1,actualBounds.maxY-actualBounds.minY);
     const ew=Math.max(1,expectedBounds.maxX-expectedBounds.minX),eh=Math.max(1,expectedBounds.maxY-expectedBounds.minY);
     const ratioError=Math.abs(Math.log(Math.max(.001,(aw/ah)/(ew/eh))));
     const proportionScore=Math.max(0,100*Math.exp(-ratioError*.9));
 
-    // Stroke paths add a secondary signal. Matching is unordered and can run in either direction.
-    const scale=Math.min(ew/aw,eh/ah);
-    const acx=(actualBounds.minX+actualBounds.maxX)/2,acy=(actualBounds.minY+actualBounds.maxY)/2;
-    const ecx=(expectedBounds.minX+expectedBounds.maxX)/2,ecy=(expectedBounds.minY+expectedBounds.maxY)/2;
-    const fitted=actual.map(stroke=>stroke.map(p=>[(p[0]-acx)*scale+ecx,(p[1]-acy)*scale+ecy]));
-    const n=Math.max(fitted.length,expected.length),missingCost=.28;
-    const costs=Array.from({length:n},(_,i)=>Array.from({length:n},(_,j)=>{
-      if(i>=fitted.length||j>=expected.length)return missingCost;
-      return Math.min(pathCost2(fitted[i],expected[j]),pathCost2(reverse2(fitted[i]),expected[j]));
-    }));
-    const assignment=strokeAssignment2(costs);
-    const pathScores=[];
-    for(let i=0;i<n;i++){
-      const j=assignment[i],cost=i<fitted.length&&j>=0&&j<expected.length?costs[i][j]:missingCost;
-      pathScores.push(Math.max(0,Math.min(100,100*(1-cost/missingCost))));
-    }
-    const pathScore=pathScores.reduce((sum,x)=>sum+x,0)/Math.max(1,pathScores.length);
-    const countGap=Math.abs(actual.length-expected.length);
-    const countScore=100*Math.exp(-.12*countGap);
-    let score=Math.round(pathScore*.48+imageScore*.46+proportionScore*.04+countScore*.02);
-    // A low whole-glyph match cannot be rescued by several coincidentally similar lines.
-    if(imageScore<60)score=Math.min(score,64);
+    // Точки сравниваются без привязки к порядку и числу касаний. Одно движение может покрывать несколько эталонных черт.
+    const actualLines=normalizeStrokeCloud2(actual,actualBounds,size);
+    const expectedLines=normalizeStrokeCloud2(expected,expectedBounds,size);
+    const actualCloud=actualLines.flat(),expectedCloud=expectedLines.flat();
+    const tolerance=16;
+    const lineScore=pointCloudSimilarity2(actualCloud,expectedCloud,tolerance);
+    const matchedCount=expectedLines.filter(line=>directedPointCoverage2(line,actualCloud,tolerance)>=55).length;
+    let score=Math.round(contourScore*.55+lineScore*.41+proportionScore*.04);
+    if(contourScore<60)score=Math.min(score,64);
     score=Math.max(0,Math.min(100,score));
 
     const notes=[];
-    if(countGap)notes.push('Черты: '+actual.length+' из '+expected.length+'.');
-    if(imageScore>=78)notes.push('Общий контур хорошо совпадает с образцом.');
-    else if(imageScore>=60)notes.push('Часть контура совпадает; проверь расположение деталей.');
+    if(contourScore>=78)notes.push('Общий контур хорошо совпадает с образцом.');
+    else if(contourScore>=60)notes.push('Часть контура совпадает; проверь расположение деталей.');
     else notes.push('Общий контур заметно отличается от образца.');
-    notes.push('Порядок и направление штрихов не учитываются.');
-    const matchedCount=pathScores.slice(0,actual.length).filter((value,i)=>{
-      const targetIndex=assignment[i];
-      return targetIndex>=0&&targetIndex<expected.length&&value>=55;
-    }).length;
-    notes.push('Похоже на '+matchedCount+' из '+expected.length+' черт. Порядок и направление не важны.');
-    return {score,imageScore,strokeScores:pathScores,matchedCount,expectedCount:expected.length,actualCount:actual.length,notes,proportionScore:Math.round(proportionScore)};
+    notes.push('Похоже на '+matchedCount+' из '+expected.length+' черт. Порядок, направление и объединение движений не важны.');
+    return {score,imageScore:contourScore,lineScore:Math.round(lineScore),matchedCount,expectedCount:expected.length,actualCount:actual.length,notes,proportionScore:Math.round(proportionScore)};
   }
   function createReference2(host,ch){
     host.innerHTML='';
@@ -653,7 +629,7 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     const pct=document.createElement('div');pct.style.fontWeight='600';
     pct.textContent=result.unavailable?'Эталон недоступен':'Сходство контура: '+result.score+'%';
     const count=document.createElement('div');count.className='muted';count.style.fontSize='11px';
-    count.textContent=result.unavailable?'':'Совпало черт: '+(result.matchedCount||0)+' из '+result.expectedCount+' · нарисовано '+result.actualCount;
+    count.textContent=result.unavailable?'':'Совпало черт: '+(result.matchedCount||0)+' из '+result.expectedCount+' · отдельных движений: '+result.actualCount;
     info.appendChild(pct);info.appendChild(count);card.appendChild(info);
     const notes=document.createElement('div');notes.className='result-notes';notes.textContent=(result.notes||[]).join(' ');card.appendChild(notes);
     if(!result.unavailable&&window.HanziWriter){
@@ -701,11 +677,11 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
       const usable=results.filter(x=>!x.result.unavailable);
       const overall=usable.length?Math.round(usable.reduce((a,x)=>a+x.result.score,0)/usable.length):0;
       const success=usable.length===results.length&&overall>=68&&
-        usable.every(x=>x.result.score>=68&&x.result.actualCount===x.result.expectedCount);
+        usable.every(x=>x.result.score>=68&&x.result.matchedCount>=Math.ceil(x.result.expectedCount*.75));
       const summary=$2('analysis-summary');
       summary.textContent='Сходство контуров: '+overall+'%. '+
         (success?'Все иероглифы похожи на образец. Порядок штрихов не учитывался.':
-        'Сравни контур и совпавшие черты ниже. Порядок и направление не важны; для зачёта каждый знак должен набрать не меньше 68%.');
+        'Сравни контур и совпавшие черты ниже. Порядок, направление и число отдельных движений не важны; каждый знак должен набрать не меньше 68%.');
       const resultList=$2('result-list');resultList.innerHTML='';
       results.forEach((item,i)=>resultList.appendChild(buildCharResult2(item.character,i,item.result,drawings2[i]||[])));
       $2('analysis-panel').classList.remove('hidden');
