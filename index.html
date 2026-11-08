@@ -59,7 +59,7 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 <main>
 <section id="practice">
 <h1>Практика письма</h1><div class="sub">Сначала напиши слово по памяти. Проверка появится только после сохранения.</div>
-<div class="toolbar"><select id="level"><option value="1">HSK 1 · 303 слова</option><option value="2">HSK 2 · 205 слов</option><option value="3">HSK 3 · 511 слов</option><option value="4">HSK 4 · 1 012 слов</option><option value="5">HSK 5 · 1 626 слов</option><option value="6">HSK 6 · 1 926 слов</option><option value="7-9">HSK 7–9 · 5 595 слов</option><option value="all">Все уровни</option></select>
+<div class="toolbar"><select id="level"><option value="1">HSK 1 · 554 слов</option><option value="2">HSK 2 · 205 слов</option><option value="3">HSK 3 · 511 слов</option><option value="4">HSK 4 · 1 012 слов</option><option value="5">HSK 5 · 1 626 слов</option><option value="6">HSK 6 · 1 926 слов</option><option value="7-9">HSK 7–9 · 5 595 слов</option><option value="all">Все уровни</option></select>
 <select id="mode"><option value="sequence" selected>По алфавиту (пиньинь)</option><option value="random">Случайный порядок</option><option value="mistakes">Мои ошибки</option></select><button class="btn" id="skip">Пропустить</button></div>
 <div class="card">
 <div class="head"><span id="counter">Подготовка словаря</span><span id="leveltag">HSK 1</span></div>
@@ -135,8 +135,8 @@ async function load(forceFresh){
      return response.json();
    }));
    const entries=chunks.flat();
-   if(entries.length!==11178)throw Error('Ожидалось 11 178 слов HSK 2025, загружено '+entries.length);
-   const expectedCounts={'1':303,'2':205,'3':511,'4':1012,'5':1626,'6':1926,'7-9':5595};
+   if(entries.length!==11429)throw Error('Ожидалось 11 178 слов HSK 2025, загружено '+entries.length);
+   const expectedCounts={'1':554,'2':205,'3':511,'4':1012,'5':1626,'6':1926,'7-9':5595};
    const actualCounts=entries.reduce((a,x)=>(a[String(x.l)]=(a[String(x.l)]||0)+1,a),{});
    for(const level in expectedCounts)if(actualCounts[level]!==expectedCounts[level])throw Error('HSK '+level+': ожидалось '+expectedCounts[level]+', загружено '+(actualCounts[level]||0));
    words=entries.map(x=>({
@@ -145,7 +145,7 @@ async function load(forceFresh){
      level:String(x.l||''),
      translation:String(x.t||'')
    })).filter(x=>x.word&&x.pinyin&&x.level&&x.translation);
-   if(words.length!==11178)throw Error('Не у всех слов найден короткий русский перевод: '+words.length);
+   if(words.length!==11429)throw Error('Не у всех слов найден короткий русский перевод: '+words.length);
    sortByPinyin(words);
    $('status').textContent=words.length.toLocaleString('ru-RU')+' слов · переводы готовы';
    currentWordPage=0;
