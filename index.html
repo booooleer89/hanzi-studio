@@ -232,9 +232,24 @@ $('level').onchange=build;$('mode').onchange=build;$('clear').onclick=clearCanva
 
 function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function progress(){$('s-total').textContent=stats.total||0;$('s-right').textContent=stats.right||0;$('s-rate').textContent=(stats.total?Math.round((stats.right||0)/stats.total*100):0)+'%';$('mistake-list').innerHTML=mistakes.length?mistakes.map(w=>'<span style="font-size:20px;margin:4px">'+esc(w)+'</span>').join(''):'Ошибок пока нет.'}
+function normalizePinyinSearch(value){
+ return String(value||'').toLowerCase().normalize('NFD')
+  .replace(/u\\u0308/g,'v').replace(/u:/g,'v')
+  .replace(/[\\u0300-\\u036f]/g,'').replace(/[1-5]/g,'')
+  .replace(/[^a-zv]/g,'');
+}
+function isPinyinQuery(value){
+ return /[a-z]/i.test(value)&&/^[\\p{Script=Latin}\\p{M}\\d\\s:'’\\-]+$/u.test(value);
+}
 function renderWords(){
- let l=$('wordlevel').value,q=$('search').value.trim().toLocaleLowerCase('ru-RU'),
- a=words.filter(w=>levelMatch(w,l)&&(!q||w.word.toLocaleLowerCase().includes(q)||w.pinyin.toLocaleLowerCase().includes(q)||(w.translation||'').toLocaleLowerCase('ru-RU').includes(q)));
+ let l=$('wordlevel').value,raw=$('search').value.trim(),q=raw.toLocaleLowerCase('ru-RU'),
+ pinyinQuery=isPinyinQuery(raw),pinyinPrefix=normalizePinyinSearch(raw),
+ a=words.filter(w=>{
+   if(!levelMatch(w,l))return false;
+   if(!raw)return true;
+   if(pinyinQuery)return normalizePinyinSearch(w.pinyin).startsWith(pinyinPrefix);
+   return w.word.toLocaleLowerCase().includes(q)||(w.translation||'').toLocaleLowerCase('ru-RU').includes(q);
+ });
  sortByPinyin(a);
  const pageSize=100,totalPages=Math.max(1,Math.ceil(a.length/pageSize));
  if(currentWordPage>=totalPages)currentWordPage=totalPages-1;
