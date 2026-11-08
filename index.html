@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#fafaf8">
-<title>Hanzi Studio — HSK 3.0</title>
+<title>Hanzi Studio — HSK 2025</title>
 <style>
 :root{--ink:#252621;--muted:#85877f;--line:#e8e9e3;--soft:#f4f5f1;--accent:#ad5045}
 *{box-sizing:border-box}body{margin:0;background:#fafaf8;color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -53,13 +53,13 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 </head>
 <body>
 <div class="shell">
-<header class="top"><div><div class="brand">Hanzi <span>Studio</span></div><div class="muted" style="font-size:12px">Тренажёр китайского · HSK 3.0</div></div><div class="muted" id="status">Загрузка словаря…</div></header>
+<header class="top"><div><div class="brand">Hanzi <span>Studio</span></div><div class="muted" style="font-size:12px">Тренажёр китайского · HSK 2025</div></div><div class="muted" id="status">Загрузка словаря…</div></header>
 <div class="layout">
 <aside class="side"><button class="nav active" data-view="practice">Практика письма</button><button class="nav" data-view="words">Словарь</button><button class="nav" data-view="progress">Мой прогресс</button></aside>
 <main>
 <section id="practice">
 <h1>Практика письма</h1><div class="sub">Сначала напиши слово по памяти. Проверка появится только после сохранения.</div>
-<div class="toolbar"><select id="level"><option value="1">HSK 1 · 300 слов</option><option value="2">HSK 2 · 200 слов</option><option value="3">HSK 3 · 500 слов</option><option value="4">HSK 4 · 1 000 слов</option><option value="5">HSK 5 · 1 600 слов</option><option value="6">HSK 6 · 1 800 слов</option><option value="7-9">HSK 7–9 · 5 560 слов</option><option value="all">Все уровни</option></select>
+<div class="toolbar"><select id="level"><option value="1">HSK 1 · 300 слов</option><option value="2">HSK 2 · 200 слов</option><option value="3">HSK 3 · 500 слов</option><option value="4">HSK 4 · 1 000 слов</option><option value="5">HSK 5 · 1 600 слов</option><option value="6">HSK 6 · 1 800 слов</option><option value="7-9">HSK 7–9 · 5 600 слов</option><option value="all">Все уровни</option></select>
 <select id="mode"><option value="sequence" selected>По алфавиту (пиньинь)</option><option value="random">Случайный порядок</option><option value="mistakes">Мои ошибки</option></select><button class="btn" id="skip">Пропустить</button></div>
 <div class="card">
 <div class="head"><span id="counter">Подготовка словаря</span><span id="leveltag">HSK 1</span></div>
@@ -81,7 +81,7 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 </div>
 <div class="notice">Сначала ты пишешь самостоятельно — сайт не показывает контур и не исправляет тебя в процессе. После отправки сравниваются форма и пропорции. Порядок черт не влияет на процент. В словаре используются русские словарные статьи из файлов Chinese+ для Anki.</div>
 </section>
-<section id="words" class="hidden"><h1>Словарь HSK</h1><div class="sub">Полный словарь HSK 3.0 с русскими словарными значениями. Поиск по иероглифам, пиньиню и русскому переводу.</div>
+<section id="words" class="hidden"><h1>Словарь HSK</h1><div class="sub">Обновлённый список HSK 2025 с русскими переводами.  Поиск по иероглифам, пиньиню и русскому переводу.</div>
 <div class="toolbar"><select id="wordlevel"><option value="all">Все уровни</option><option value="1">HSK 1</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option><option value="5">HSK 5</option><option value="6">HSK 6</option><option value="7-9">HSK 7–9</option></select><input id="search" placeholder="По-китайски, пиньиню или по-русски"></div>
 <div class="muted" id="translation-coverage" style="font-size:12px;margin:-5px 0 12px"></div>
 <div class="muted" id="wordcount"></div>
@@ -112,7 +112,7 @@ function convert(rows){
  let h=rows.shift().map(x=>x.replace(/^\uFEFF/,'').trim().toLowerCase());
  let ix=(...a)=>h.findIndex(x=>a.includes(x));
  let wi=ix('hanzi','simplified','simplified chinese'),pi=ix('pinyin','pinyin with tone marks'),li=ix('level','hsk level'),ii=ix('id'),ei=ix('entry'),hi=ix('homograph');
- if(wi<0||pi<0||li<0)throw Error('Неверный формат HSK 3.0 CSV');
+ if(wi<0||pi<0||li<0)throw Error('Неверный формат таблицы HSK');
  const result=rows.map(r=>({
    id:ii>=0?(r[ii]||'').trim():'',
    word:(r[wi]||'').trim().normalize('NFC'),
@@ -135,8 +135,8 @@ async function load(forceFresh){
      return response.json();
    }));
    const entries=chunks.flat();
-   if(entries.length!==10960)throw Error('Ожидалось 10 960 записей HSK 3.0, загружено '+entries.length);
-   const expectedCounts={'1':300,'2':200,'3':500,'4':1000,'5':1600,'6':1800,'7-9':5560};
+   if(entries.length!==10989)throw Error('Ожидалось 10 989 слов HSK 2025, загружено '+entries.length);
+   const expectedCounts={'1':300,'2':199,'3':500,'4':999,'5':1598,'6':1798,'7-9':5595};
    const actualCounts=entries.reduce((a,x)=>(a[String(x.l)]=(a[String(x.l)]||0)+1,a),{});
    for(const level in expectedCounts)if(actualCounts[level]!==expectedCounts[level])throw Error('HSK '+level+': ожидалось '+expectedCounts[level]+', загружено '+(actualCounts[level]||0));
    words=entries.map(x=>({
@@ -145,7 +145,7 @@ async function load(forceFresh){
      level:String(x.l||''),
      translation:String(x.t||'')
    })).filter(x=>x.word&&x.pinyin&&x.level&&x.translation);
-   if(words.length!==10960)throw Error('Не у всех слов найден подробный русский перевод: '+words.length);
+   if(words.length!==10989)throw Error('Не у всех слов найден короткий русский перевод: '+words.length);
    sortByPinyin(words);
    $('status').textContent=words.length.toLocaleString('ru-RU')+' слов · переводы готовы';
    currentWordPage=0;
