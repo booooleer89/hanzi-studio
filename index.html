@@ -157,7 +157,7 @@ table{width:100%;border-collapse:collapse;background:white}td,th{text-align:left
 </div>
 <div class="next"><span class="muted" id="accuracy" style="font-size:12px">Слова: 0 · Повторить: 0</span><button class="btn primary" id="next">Следующее слово →</button></div>
 </div>
-<div class="notice">Сначала ты пишешь самостоятельно — сайт не показывает контур и не исправляет тебя в процессе. После отправки сравниваются форма и пропорции. Порядок черт не влияет на процент. В словаре используются русские словарные статьи из файлов Chinese+ для Anki.</div>
+<div class="notice">Сначала ты пишешь самостоятельно — сайт не показывает контур и не исправляет тебя в процессе. После отправки оцениваются общий контур и расположение частей. Порядок и разделение на движения не влияют на оценку. В словаре используются русские словарные статьи из файлов Chinese+ для Anki.</div>
 </section>
 <section id="words" class="hidden"><h1>Словарь HSK</h1><div class="sub">Слова по уровням HSK с русскими переводами. Поиск по иероглифам, пиньиню и русскому переводу.</div>
 <div class="toolbar"><select id="wordlevel"><option value="all">Все уровни</option><option value="1">HSK 1</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option><option value="5">HSK 5</option><option value="6">HSK 6</option><option value="7-9">HSK 7–9</option></select><input id="search" placeholder="По-китайски, пиньиню или по-русски"></div>
@@ -443,126 +443,77 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);
     return {minX:Math.min(...xs),maxX:Math.max(...xs),minY:Math.min(...ys),maxY:Math.max(...ys)};
   }
-  function resample2(points,count){
-    if(!points||!points.length)return [];
-    if(points.length===1)return Array.from({length:count},()=>points[0].slice());
-    const cumulative=[0];
-    for(let i=1;i<points.length;i++){
-      cumulative.push(cumulative[i-1]+Math.hypot(points[i][0]-points[i-1][0],points[i][1]-points[i-1][1]));
-    }
-    const total=cumulative[cumulative.length-1];
-    if(total<0.001)return Array.from({length:count},()=>points[0].slice());
-    const out=[];let seg=1;
-    for(let k=0;k<count;k++){
-      const target=total*k/(count-1);
-      while(seg<cumulative.length-1&&cumulative[seg]<target)seg++;
-      const start=cumulative[seg-1],end=cumulative[seg],span=end-start;
-      const t=span?((target-start)/span):0;
-      out.push([
-        points[seg-1][0]+(points[seg][0]-points[seg-1][0])*t,
-        points[seg-1][1]+(points[seg][1]-points[seg-1][1])*t
-      ]);
-    }
-    return out;
+  function shapeMask2(strokes,bounds,size){
+    const canvas=document.createElement('canvas');
+    canvas.width=size;canvas.height=size;
+    const ctx=canvas.getContext('2d');
+    ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#000';ctx.fillStyle='#000';ctx.lineWidth=4.25;
+    const width=Math.max(1,bounds.maxX-bounds.minX),height=Math.max(1,bounds.maxY-bounds.minY),padding=10;
+    const scale=Math.min((size-padding*2)/width,(size-padding*2)/height);
+    const offsetX=(size-width*scale)/2-bounds.minX*scale;
+    const offsetY=(size-height*scale)/2-bounds.minY*scale;
+    const point=p=>[p[0]*scale+offsetX,p[1]*scale+offsetY];
+    strokes.forEach(stroke=>{
+      if(!stroke||!stroke.length)return;
+      const first=point(stroke[0]);
+      ctx.beginPath();
+      if(stroke.length===1){ctx.arc(first[0],first[1],ctx.lineWidth/2,0,Math.PI*2);ctx.fill();return;}
+      ctx.moveTo(first[0],first[1]);
+      for(let i=1;i<stroke.length;i++){const p=point(stroke[i]);ctx.lineTo(p[0],p[1]);}
+      ctx.stroke();
+    });
+    const alpha=ctx.getImageData(0,0,size,size).data,mask=new Uint8Array(size*size);
+    for(let i=0;i<mask.length;i++)if(alpha[i*4+3]>70)mask[i]=1;
+    return mask;
   }
-  function pathCost2(a,b){
-    const aa=resample2(a,36),bb=resample2(b,36);
-    if(!aa.length||!bb.length)return 1;
-    let d=0;
-    for(let i=0;i<aa.length;i++)d+=Math.hypot(aa[i][0]-bb[i][0],aa[i][1]-bb[i][1]);
-    return d/aa.length/GRID;
-  }
-  function reverse2(points){return points.slice().reverse();}
-  function strokeAssignment2(costs){
-    const n=costs.length;
-    if(!n)return [];
-    const u=new Array(n+1).fill(0),v=new Array(n+1).fill(0);
-    const p=new Array(n+1).fill(0),way=new Array(n+1).fill(0);
-    for(let row=1;row<=n;row++){
-      p[0]=row;
-      let col0=0;
-      const minv=new Array(n+1).fill(Infinity),used=new Array(n+1).fill(false);
-      do{
-        used[col0]=true;
-        const row0=p[col0];
-        let delta=Infinity,col1=0;
-        for(let col=1;col<=n;col++){
-          if(used[col])continue;
-          const cur=costs[row0-1][col-1]-u[row0]-v[col];
-          if(cur<minv[col]){minv[col]=cur;way[col]=col0;}
-          if(minv[col]<delta){delta=minv[col];col1=col;}
+  function dilateMask2(mask,size,radius){
+    const expanded=new Uint8Array(mask.length),radiusSquared=radius*radius;
+    for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+      if(!mask[y*size+x])continue;
+      for(let dy=-radius;dy<=radius;dy++){
+        const yy=y+dy;if(yy<0||yy>=size)continue;
+        for(let dx=-radius;dx<=radius;dx++){
+          if(dx*dx+dy*dy>radiusSquared)continue;
+          const xx=x+dx;if(xx>=0&&xx<size)expanded[yy*size+xx]=1;
         }
-        for(let col=0;col<=n;col++){
-          if(used[col]){u[p[col]]+=delta;v[col]-=delta;}
-          else minv[col]-=delta;
-        }
-        col0=col1;
-      }while(p[col0]!==0);
-      do{
-        const col1=way[col0];
-        p[col0]=p[col1];
-        col0=col1;
-      }while(col0!==0);
+      }
     }
-    const result=new Array(n).fill(-1);
-    for(let col=1;col<=n;col++)if(p[col])result[p[col]-1]=col-1;
-    return result;
-  }
-  function strokeAssignment2(costs){
-    const n=costs.length;if(!n)return [];
-    const u=new Array(n+1).fill(0),v=new Array(n+1).fill(0);
-    const p=new Array(n+1).fill(0),way=new Array(n+1).fill(0);
-    for(let row=1;row<=n;row++){
-      p[0]=row;let col0=0;
-      const minv=new Array(n+1).fill(Infinity),used=new Array(n+1).fill(false);
-      do{
-        used[col0]=true;const row0=p[col0];let delta=Infinity,col1=0;
-        for(let col=1;col<=n;col++){if(used[col])continue;const cur=costs[row0-1][col-1]-u[row0]-v[col];if(cur<minv[col]){minv[col]=cur;way[col]=col0;}if(minv[col]<delta){delta=minv[col];col1=col;}}
-        for(let col=0;col<=n;col++){if(used[col]){u[p[col]]+=delta;v[col]-=delta;}else minv[col]-=delta;}
-        col0=col1;
-      }while(p[col0]!==0);
-      do{const col1=way[col0];p[col0]=p[col1];col0=col1;}while(col0!==0);
-    }
-    const result=new Array(n).fill(-1);
-    for(let col=1;col<=n;col++)if(p[col])result[p[col]-1]=col-1;
-    return result;
+    return expanded;
   }
   function scoreCharacter2(userStrokes,charData){
     const medians=charData&&charData.medians;
-    if(!Array.isArray(medians)||!medians.length)return {unavailable:true,score:0,notes:['Для этого иероглифа нет эталонных траекторий.']};
-    // Data is in 0..1024 screen coordinates after flipping around y=900.
+    if(!Array.isArray(medians)||!medians.length)return {unavailable:true,score:0,notes:['Для этого иероглифа нет эталонных данных.']};
     const expected=medians.map(stroke=>stroke.map(p=>[Number(p[0]),900-Number(p[1])]));
     const expectedBounds=getBounds2(expected),actualBounds=getBounds2(userStrokes);
-    if(!actualBounds||!userStrokes.length)return {score:0,expectedCount:expected.length,actualCount:0,notes:['Ты пока не нарисовала этот иероглиф.']};
+    if(!expectedBounds)return {unavailable:true,score:0,notes:['Для этого иероглифа нет эталонных данных.']};
+    if(!actualBounds||!userStrokes.length)return {score:0,notes:['Пока нет написания для сравнения.']};
     const aw=Math.max(1,actualBounds.maxX-actualBounds.minX),ah=Math.max(1,actualBounds.maxY-actualBounds.minY);
     const ew=Math.max(1,expectedBounds.maxX-expectedBounds.minX),eh=Math.max(1,expectedBounds.maxY-expectedBounds.minY);
     const scale=Math.min(ew/aw,eh/ah);
     const acx=(actualBounds.minX+actualBounds.maxX)/2,acy=(actualBounds.minY+actualBounds.maxY)/2;
     const ecx=(expectedBounds.minX+expectedBounds.maxX)/2,ecy=(expectedBounds.minY+expectedBounds.maxY)/2;
     const fitted=userStrokes.map(stroke=>stroke.map(p=>[(p[0]-acx)*scale+ecx,(p[1]-acy)*scale+ecy]));
-    const n=Math.max(fitted.length,expected.length);
-    const costs=Array.from({length:n},(_,i)=>Array.from({length:n},(_,j)=>{
-      if(i>=fitted.length||j>=expected.length)return 0.28;
-      return Math.min(pathCost2(fitted[i],expected[j]),pathCost2(reverse2(fitted[i]),expected[j]));
-    }));
-    const assignment=strokeAssignment2(costs),scores=[];
-    for(let i=0;i<fitted.length;i++){
-      const j=assignment[i];
-      const d=j>=0&&j<expected.length?costs[i][j]:0.28;
-      scores.push(Math.max(0,Math.min(100,Math.round(100*(1-d/0.28)))));
+    const size=128;
+    const expectedMask=shapeMask2(expected,expectedBounds,size);
+    const actualMask=shapeMask2(fitted,expectedBounds,size);
+    const expectedCount=expectedMask.reduce((sum,value)=>sum+value,0);
+    const actualCount=actualMask.reduce((sum,value)=>sum+value,0);
+    if(!expectedCount||!actualCount)return {score:0,notes:['Пока не удалось сравнить общий контур.']};
+    const expectedNear=dilateMask2(expectedMask,size,5),actualNear=dilateMask2(actualMask,size,5);
+    let matchedActual=0,matchedExpected=0;
+    for(let i=0;i<actualMask.length;i++){
+      if(actualMask[i]&&expectedNear[i])matchedActual++;
+      if(expectedMask[i]&&actualNear[i])matchedExpected++;
     }
-    const shape=scores.reduce((a,b)=>a+b,0)/n;
-    const ratioActual=aw/ah,ratioExpected=ew/eh;
-    const ratioError=Math.abs(Math.log(Math.max(.001,ratioActual/ratioExpected)));
+    const precision=matchedActual/actualCount,recall=matchedExpected/expectedCount;
+    const contourScore=precision+recall?2*precision*recall/(precision+recall)*100:0;
+    const ratioError=Math.abs(Math.log(Math.max(.001,(aw/ah)/(ew/eh))));
     const proportionScore=Math.max(0,100*(1-ratioError/1.2));
-    const score=Math.round(shape*.90+proportionScore*.10);
-    const notes=[];
-    if(userStrokes.length<expected.length)notes.push('Не хватает черт: ожидалось '+expected.length+', написано '+userStrokes.length+'.');
-    if(userStrokes.length>expected.length)notes.push('Лишние черты: ожидалось '+expected.length+', написано '+userStrokes.length+'.');
-    const weak=scores.filter(v=>v<55).length;
-    if(weak)notes.push('У '+weak+' черт контур заметно отличается от ближайшего эталона.');
-    if(!notes.length)notes.push('Форма и пропорции похожи на эталон. Порядок черт не влияет на оценку.');
-    return {score,strokeScores:scores,expectedCount:expected.length,actualCount:userStrokes.length,notes,proportionScore:Math.round(proportionScore)};
+    const score=Math.round(contourScore*.92+proportionScore*.08);
+    const notes=[score>=62
+      ?'Общая форма похожа на образец. Порядок и разделение на отдельные движения не оцениваются.'
+      :'Сравни общий контур и расположение основных частей с образцом. Порядок движений не оценивается.'];
+    return {score,contourScore:Math.round(contourScore),proportionScore:Math.round(proportionScore),notes};
   }
   function createReference2(host,ch){
     host.innerHTML='';
@@ -603,7 +554,7 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     const info=document.createElement('div');
     const pct=document.createElement('div');pct.style.fontWeight='600';pct.textContent=result.unavailable?'Нет эталона':('Сходство формы: '+result.score+'%');
     const count=document.createElement('div');count.className='muted';count.style.fontSize='11px';
-    count.textContent=result.unavailable?'':('Черт: '+result.actualCount+' из '+result.expectedCount);
+    count.textContent=result.unavailable?'':'Оценивается общий контур; порядок движений не важен.';
     info.appendChild(pct);info.appendChild(count);card.appendChild(info);
     const notes=document.createElement('div');notes.className='result-notes';notes.textContent=(result.notes||[]).join(' ');card.appendChild(notes);
     if(!result.unavailable&&window.HanziWriter){
@@ -649,11 +600,11 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
       });
       const usable=results.filter(x=>!x.result.unavailable);
       const overall=usable.length?Math.round(usable.reduce((a,x)=>a+x.result.score,0)/usable.length):0;
-      const success=usable.length===results.length&&overall>=60&&usable.every(x=>x.result.actualCount===x.result.expectedCount);
+      const success=usable.length===results.length&&overall>=62&&usable.every(x=>x.result.score>=50);
       const summary=$2('analysis-summary');
       summary.textContent='Общее сходство формы: '+overall+'%. '+
         (success?'Форма слова близка к эталону. Порядок черт не учитывался.':
-        'Проверь форму, пропорции и количество черт в разборе ниже. Порядок черт не влияет на процент.');
+        'Сравни общий силуэт и расположение основных частей с образцом. Порядок движений не оценивается.');
       const resultList=$2('result-list');resultList.innerHTML='';
       results.forEach((item,i)=>resultList.appendChild(buildCharResult2(item.character,i,item.result,drawings2[i]||[])));
       $2('analysis-panel').classList.remove('hidden');
