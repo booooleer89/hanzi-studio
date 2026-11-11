@@ -220,6 +220,14 @@ th{background:#f7f9fc;color:var(--muted)}
  .recognized-word-box{margin-left:auto;margin-right:auto}
  .recognized-word-value{font-size:28px}
 }
+.system-writing-label{display:block;margin:14px 0 6px;color:#202124;font-size:14px;font-weight:650}
+.system-writing-input{display:block;width:100%;min-height:76px;margin:0 auto;padding:14px 18px;border:1px solid #d8e2f0;border-radius:14px;background:#fff;color:#111827;font:30px/1.35 "Noto Serif CJK SC","Songti SC","SimSun",serif;letter-spacing:1px;box-shadow:0 2px 10px rgba(16,24,40,.035)}
+.system-writing-input:focus{outline:3px solid rgba(39,100,216,.16);border-color:#2764d8}
+.system-writing-input::placeholder{color:#98a2b3;font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:0}
+.manual-drawing{max-width:760px;margin:16px auto 4px}
+.manual-drawing summary{width:max-content;max-width:100%;padding:8px 0;color:#2764d8;font-size:13px;font-weight:600;cursor:pointer}
+.manual-drawing[open] summary{margin-bottom:6px}
+@media(max-width:540px){.system-writing-input{min-height:68px;font-size:27px;padding:12px 14px}}
 </style>
 </head>
 <body>
@@ -233,7 +241,7 @@ th{background:#f7f9fc;color:var(--muted)}
 </aside></div></div></header>
 <div class="layout"><main>
 <section id="practice">
-<h1>Практика письма</h1><div class="sub">Напиши слово от руки. Если рисунок совпадёт с иероглифом, засчитаем; если нет — можно попробовать ещё раз.</div>
+<h1>Практика письма</h1><div class="sub">Напиши слово Apple Pencil или рукописной клавиатурой. Нажми «Сравнить слово», чтобы проверить результат.</div>
 <div class="toolbar"><select id="level"><option value="1">HSK 1 · 554 слов</option><option value="2">HSK 2 · 301 слово</option><option value="3">HSK 3 · 561 слово</option><option value="4">HSK 4 · 1 096 слов</option><option value="5">HSK 5 · 1 724 слова</option><option value="6">HSK 6 · 2 111 слов</option><option value="7-9">HSK 7–9 · 6 226 слов</option><option value="all">Все уровни</option></select>
 <select id="mode"><option value="sequence" selected>По алфавиту (пиньинь)</option><option value="random">Случайный порядок</option><option value="mistakes">Мои ошибки</option></select><button class="btn" id="skip">Пропустить</button></div>
 <div class="card">
@@ -241,9 +249,14 @@ th{background:#f7f9fc;color:var(--muted)}
 <div class="center"><div class="pinyin" id="pinyin">hǎo</div>
 <div class="translation-row"><span class="short-translation" id="short-translation"></span></div>
 <div class="muted" style="font-size:12px;margin-top:12px">Оригинал и разбор ошибок появятся только после отправки слова.</div></div>
-<div class="pad"><div class="padlabel">Рисуй каждый иероглиф в своём поле. Распознавание запустится, когда нажмёшь «Сравнить слово».</div>
+<div class="pad"><div class="padlabel">На iPad пиши Apple Pencil прямо в поле — система превратит почерк в текст. На других устройствах используй рукописную клавиатуру.</div>
+<label class="system-writing-label" for="handwriting-input">Твой ответ</label>
+<input id="handwriting-input" class="system-writing-input" type="text" lang="zh-CN" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-label="Поле для рукописного ввода иероглифов" placeholder="Напиши здесь китайское слово">
+<div class="recognized-word-box" aria-live="polite"><span class="recognized-word-label">Распознано как</span><strong class="recognized-word-value" id="recognized-word-live">—</strong><span class="recognized-word-status" id="recognizer-status">Сравнение запустится по кнопке.</span></div>
+<details class="manual-drawing"><summary>Или нарисуй иероглифы вручную</summary>
+<div class="padlabel">Запасной вариант: рисуй мышью, пальцем или стилусом.</div>
 <div id="writing-panels"></div>
-<div class="recognized-word-box" aria-live="polite"><span class="recognized-word-label">Распознано как</span><strong class="recognized-word-value" id="recognized-word-live">—</strong><span class="recognized-word-status" id="recognizer-status">Загружаю распознавание…</span></div>
+</details>
 <div class="actions"><button class="btn" id="clear">Очистить всё</button><button class="btn primary" id="submit-writing">Сравнить слово</button></div>
 <div class="feedback" id="feedback">Загружаю слова…</div>
 <div id="analysis-panel" class="hidden">
@@ -255,7 +268,7 @@ th{background:#f7f9fc;color:var(--muted)}
 </div>
 <div class="next"><span class="muted" id="accuracy" style="font-size:12px">Слова: 0 · Повторить: 0</span><button class="btn primary" id="next">Следующее слово →</button></div>
 </div>
-<div class="notice">Рисунок распознаётся в печатные иероглифы. Проверка простая: распознанное слово совпало с ответом — правильно; не совпало — попробуй ещё раз.</div>
+<div class="notice">Сайт сравнивает полученный текст с ответом только после нажатия «Сравнить слово». Если рукописный ввод недоступен, можно нарисовать иероглифы вручную.</div>
 </section>
 <section id="words" class="hidden"><h1>Словарь HSK</h1><div class="sub">Слова по уровням HSK с русскими переводами. Поиск по иероглифам, пиньиню и русскому переводу.</div>
 <div class="toolbar"><select id="wordlevel"><option value="all">Все уровни</option><option value="1">HSK 1</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option><option value="5">HSK 5</option><option value="6">HSK 6</option><option value="7-9">HSK 7–9</option></select><input id="search" placeholder="По-китайски, пиньиню или по-русски"></div>
@@ -530,10 +543,17 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
   }
   function hasInk2(strokes){return Array.isArray(strokes)&&strokes.some(stroke=>Array.isArray(stroke)&&stroke.length>0);}
   function updateWordPreview2(){
+    const input=$2("handwriting-input");
+    const systemText=String(input&&input.value||"").trim();
+    if(systemText){
+      $2("recognized-word-live").textContent=systemText;
+      $2("recognizer-status").textContent="Текст готов — нажми «Сравнить слово»";
+      return;
+    }
     const ink=drawings2.some(hasInk2);
     const value=recognizedCharacters2.map((ch,i)=>ch||(hasInk2(drawings2[i])?"…":"")).join("");
     $2("recognized-word-live").textContent=value||"—";
-    $2("recognizer-status").textContent=ink?"Нажми «Сравнить слово» — распознаю готовый рисунок":"Нарисуй слово, затем нажми «Сравнить слово»";
+    $2("recognizer-status").textContent=ink?"Нажми «Сравнить слово» — распознаю готовый рисунок":"Напиши выше или нарисуй вручную, затем сравни";
   }
   function renderCandidates2(index,matches){
     const node=outputNodes2[index];if(!node)return;
@@ -622,6 +642,7 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     canvas.addEventListener("pointerdown",event=>{
       if(submitted2||attemptBusy2)return;
       event.preventDefault();
+      if($2("handwriting-input").value)$2("handwriting-input").value="";
       try{canvas.setPointerCapture(event.pointerId);}catch(_){}
       cellVersions2[index]++;recognizedVersions2[index]=-1;selectedCandidate2[index]=false;recognizedCharacters2[index]="";candidateLists2[index]=[];
       if(recognitionTimers2[index])clearTimeout(recognitionTimers2[index]);
@@ -647,6 +668,7 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     $2("submit-writing").textContent="Сравнить слово";
     $2("clear").textContent="Очистить всё";$2("clear").disabled=false;
     $2("analysis-panel").classList.add("hidden");
+    $2("handwriting-input").value="";
     wordCharacters2=(current&&current.word?Array.from(current.word).filter(isHan2):[]);
     drawings2=[];recognizedCharacters2=wordCharacters2.map(()=> "");candidateLists2=wordCharacters2.map(()=>[]);
     outputNodes2=[];cellVersions2=[];recognizedVersions2=[];selectedCandidate2=[];recognitionTimers2=[];
@@ -657,9 +679,9 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     }
     wordCharacters2.forEach((_,index)=>host.appendChild(makeCanvas2(index)));
     $2("submit-writing").disabled=false;$2("clear").disabled=false;$2("retry-writing").disabled=false;
-    $2("feedback").textContent="Нарисуй слово и нажми «Сравнить слово» — распознавание запустится после рисунка.";
+    $2("feedback").textContent="Напиши ответ в поле выше или открой ручное рисование, затем нажми «Сравнить слово».";
     updateWordPreview2();
-    startRecognizer2().catch(()=>{outputNodes2.forEach(node=>{if(node)node.status.textContent="Распознавание недоступно — проверь интернет";});});
+    outputNodes2.forEach(node=>{if(node)node.status.textContent="После рисунка нажми «Сравнить слово»";});
   }
   function buildCharResult2(expected,recognized){
     const card=document.createElement("div");card.className="result-char";
@@ -702,9 +724,12 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     $2("recognizer-status").textContent="Распознаю слово…";
     const wordAtSubmit=current.word;
     try{
-      const characters=await Promise.all(wordCharacters2.map((_,index)=>resolveCharacter2(index)));
+      const systemText=String($2("handwriting-input").value||"").normalize("NFC").replace(/[\s\u3000]+/gu,"");
+      const characters=systemText
+        ?Array.from(systemText)
+        :await Promise.all(wordCharacters2.map((_,index)=>resolveCharacter2(index)));
       if(!current||current.word!==wordAtSubmit)return;
-      const recognizedWord=characters.join("").normalize("NFC");
+      const recognizedWord=(systemText||characters.join("")).normalize("NFC");
       const expectedWord=String(wordAtSubmit||"").normalize("NFC");
       const success=recognizedWord.length>0&&recognizedWord===expectedWord;
       submitted2=true;
@@ -737,10 +762,22 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
   function retryWriting2(){
     if(!current)return;
     $2("analysis-panel").classList.add("hidden");$2("retry-writing").classList.remove("hidden");
-    renderWritingPanels2();$2("feedback").textContent="Новая попытка — нарисуй слово и нажми «Сравнить слово».";
+    renderWritingPanels2();$2("feedback").textContent="Новая попытка — напиши ответ в поле или нарисуй его вручную.";
     $2("next").disabled=true;
   }
   window.renderWritingPanels2=renderWritingPanels2;
+  $2("handwriting-input").addEventListener("input",()=>{
+    if(attemptBusy2)return;
+    if(submitted2){
+      submitted2=false;
+      $2("analysis-panel").classList.add("hidden");
+      $2("retry-writing").classList.add("hidden");
+      $2("submit-writing").disabled=false;
+      $2("submit-writing").textContent="Сравнить слово";
+      $2("feedback").textContent="Текст изменён. Нажми «Сравнить слово» ещё раз.";
+    }
+    updateWordPreview2();
+  });
   $2("submit-writing").onclick=submitWriting2;
   $2("retry-writing").onclick=retryWriting2;
   $2("clear").onclick=()=>{if(submitted2)retryWriting2();else renderWritingPanels2();};
