@@ -241,7 +241,7 @@ th{background:#f7f9fc;color:var(--muted)}
 <div class="center"><div class="pinyin" id="pinyin">hǎo</div>
 <div class="translation-row"><span class="short-translation" id="short-translation"></span></div>
 <div class="muted" style="font-size:12px;margin-top:12px">Оригинал и разбор ошибок появятся только после отправки слова.</div></div>
-<div class="pad"><div class="padlabel">Рисуй каждый иероглиф в своём поле. После паузы распознанный знак появится печатным ниже.</div>
+<div class="pad"><div class="padlabel">Рисуй каждый иероглиф в своём поле. Распознавание запустится, когда нажмёшь «Сравнить слово».</div>
 <div id="writing-panels"></div>
 <div class="recognized-word-box" aria-live="polite"><span class="recognized-word-label">Распознано как</span><strong class="recognized-word-value" id="recognized-word-live">—</strong><span class="recognized-word-status" id="recognizer-status">Загружаю распознавание…</span></div>
 <div class="actions"><button class="btn" id="clear">Очистить всё</button><button class="btn primary" id="submit-writing">Сравнить слово</button></div>
@@ -533,21 +533,32 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     const ink=drawings2.some(hasInk2);
     const value=recognizedCharacters2.map((ch,i)=>ch||(hasInk2(drawings2[i])?"…":"")).join("");
     $2("recognized-word-live").textContent=value||"—";
-    $2("recognizer-status").textContent=ink?"Печатный вариант обновляется по мере письма":"Нарисуй слово — здесь появится распознанный текст";
+    $2("recognizer-status").textContent=ink?"Нажми «Сравнить слово» — распознаю готовый рисунок":"Нарисуй слово, затем нажми «Сравнить слово»";
   }
   function renderCandidates2(index,matches){
     const node=outputNodes2[index];if(!node)return;
     node.candidates.replaceChildren();
-    (matches||[]).slice(0,5).forEach((match,i)=>{
+    (matches||[]).slice(0,8).forEach((match,i)=>{
       const glyph=String(match.hanzi||"");
       if(!glyph)return;
       const button=document.createElement("button");
       button.type="button";button.className="recognition-candidate"+(recognizedCharacters2[index]===glyph?" selected":"");
       button.textContent=glyph;button.setAttribute("aria-label","Выбрать вариант "+glyph);
       button.onclick=()=>{
-        if(submitted2||attemptBusy2)return;
+        if(attemptBusy2)return;
+        if(submitted2){
+          const shownWord=recognizedCharacters2.join("").normalize("NFC");
+          const expectedWord=String(current&&current.word||"").normalize("NFC");
+          if(shownWord===expectedWord)return;
+          submitted2=false;
+          $2("analysis-panel").classList.add("hidden");
+          $2("retry-writing").classList.add("hidden");
+          $2("submit-writing").disabled=false;
+          $2("feedback").textContent="Вариант выбран. Нажми «Сравнить слово» ещё раз.";
+        }
         recognizedCharacters2[index]=glyph;selectedCandidate2[index]=true;
         node.print.textContent=glyph;node.status.textContent="Выбран печатный знак";
+        $2("submit-writing").textContent="Сравнить выбранный вариант";
         renderCandidates2(index,candidateLists2[index]);updateWordPreview2();
       };
       node.candidates.appendChild(button);
@@ -575,24 +586,16 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     const matches=await new Promise((resolve,reject)=>{
       const timer=setTimeout(()=>{pendingRecognition2.delete(id);reject(new Error("Истекло время распознавания"));},12000);
       pendingRecognition2.set(id,{resolve,reject,timer});
-      recognitionWorker2.postMessage({type:"recognize",id,strokes,limit:5});
+      recognitionWorker2.postMessage({type:"recognize",id,strokes,limit:8});
     });
     applyRecognition2(index,version,matches);
     return matches;
   }
   function scheduleRecognition2(index){
-    if(recognitionTimers2[index])clearTimeout(recognitionTimers2[index]);
     if(!hasInk2(drawings2[index]))return;
-    const version=cellVersions2[index],node=outputNodes2[index];
-    if(node)node.status.textContent="Распознаю написанное…";
-    $2("recognizer-status").textContent="Распознаю рукописный ввод…";
-    recognitionTimers2[index]=setTimeout(()=>{
-      recognizeCharacter2(index,version).catch(error=>{
-        if(version!==cellVersions2[index])return;
-        const node=outputNodes2[index];if(node)node.status.textContent="Распознавание не загрузилось — проверь интернет";
-        $2("recognizer-status").textContent="Проверь подключение к распознаванию";
-      });
-    },320);
+    const node=outputNodes2[index];
+    if(node)node.status.textContent="Готово к распознаванию";
+    updateWordPreview2();
   }
   function makeCanvas2(index){
     const cell=document.createElement("div");cell.className="write-cell";
@@ -641,6 +644,7 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
   }
   function renderWritingPanels2(){
     submitted2=false;attemptBusy2=false;
+    $2("submit-writing").textContent="Сравнить слово";
     $2("clear").textContent="Очистить всё";$2("clear").disabled=false;
     $2("analysis-panel").classList.add("hidden");
     wordCharacters2=(current&&current.word?Array.from(current.word).filter(isHan2):[]);
@@ -653,7 +657,7 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     }
     wordCharacters2.forEach((_,index)=>host.appendChild(makeCanvas2(index)));
     $2("submit-writing").disabled=false;$2("clear").disabled=false;$2("retry-writing").disabled=false;
-    $2("feedback").textContent="Рисуй знак. После паузы он появится печатным вариантом.";
+    $2("feedback").textContent="Нарисуй слово и нажми «Сравнить слово» — распознавание запустится после рисунка.";
     updateWordPreview2();
     startRecognizer2().catch(()=>{outputNodes2.forEach(node=>{if(node)node.status.textContent="Распознавание недоступно — проверь интернет";});});
   }
@@ -687,10 +691,9 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
   }
   async function resolveCharacter2(index){
     const version=cellVersions2[index];
-    if(recognizedVersions2[index]===version&&recognizedCharacters2[index])return recognizedCharacters2[index];
-    return new Promise((resolve,reject)=>{
-      const timer=setTimeout(()=>{recognizeCharacter2(index,version).then(matches=>resolve(matches[0]?.hanzi||"")).catch(reject);},0);
-    });
+    if(selectedCandidate2[index]&&recognizedVersions2[index]===version&&recognizedCharacters2[index])return recognizedCharacters2[index];
+    const matches=await recognizeCharacter2(index,version);
+    return String(matches[0]?.hanzi||"");
   }
   async function submitWriting2(){
     if(submitted2||attemptBusy2||!current)return;
@@ -734,7 +737,7 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
   function retryWriting2(){
     if(!current)return;
     $2("analysis-panel").classList.add("hidden");$2("retry-writing").classList.remove("hidden");
-    renderWritingPanels2();$2("feedback").textContent="Новая попытка — рисуй и смотри на печатное распознавание под полем.";
+    renderWritingPanels2();$2("feedback").textContent="Новая попытка — нарисуй слово и нажми «Сравнить слово».";
     $2("next").disabled=true;
   }
   window.renderWritingPanels2=renderWritingPanels2;
