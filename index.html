@@ -204,6 +204,22 @@ th{background:#f7f9fc;color:var(--muted)}
 .recognition-word-results .printed-glyph{font-size:42px;min-height:55px}
 .result-match{color:#16845b;font-weight:700}
 .result-mismatch{color:#c2414b;font-weight:700}
+
+/* Отдельная подстройка письма под планшеты и широкие экраны */
+@media(min-width:701px) and (max-width:1024px){
+ .shell{padding:22px 24px 42px}
+ .layout{margin-top:28px}
+ .card{padding:18px}
+ #writing-panels{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+}
+@media(min-width:1025px){
+ #writing-panels{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+}
+@media(max-width:700px){
+ #writing-panels{grid-template-columns:repeat(auto-fit,minmax(125px,1fr))}
+ .recognized-word-box{margin-left:auto;margin-right:auto}
+ .recognized-word-value{font-size:28px}
+}
 </style>
 </head>
 <body>
@@ -592,7 +608,7 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     output.append(outputLabel,print,status,candidates);cell.appendChild(output);
     outputNodes2[index]={print,status,candidates};
     const ctx=canvas.getContext("2d");
-    ctx.lineCap="round";ctx.lineJoin="round";ctx.strokeStyle="#172033";ctx.fillStyle="#172033";ctx.lineWidth=13;
+    ctx.lineCap="round";ctx.lineJoin="round";ctx.strokeStyle="#111827";ctx.fillStyle="#111827";ctx.lineWidth=13;
     const pointsForThisCharacter=[];drawings2[index]=pointsForThisCharacter;
     cellVersions2[index]=0;recognizedVersions2[index]=-1;selectedCandidate2[index]=false;candidateLists2[index]=[];
     let active=null;
