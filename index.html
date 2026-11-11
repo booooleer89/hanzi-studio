@@ -533,7 +533,7 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     const ink=drawings2.some(hasInk2);
     const value=recognizedCharacters2.map((ch,i)=>ch||(hasInk2(drawings2[i])?"…":"")).join("");
     $2("recognized-word-live").textContent=value||"—";
-    $2("recognized-word-status").textContent=ink?"Печатный вариант обновляется по мере письма":"Нарисуй слово — здесь появится распознанный текст";
+    $2("recognizer-status").textContent=ink?"Печатный вариант обновляется по мере письма":"Нарисуй слово — здесь появится распознанный текст";
   }
   function renderCandidates2(index,matches){
     const node=outputNodes2[index];if(!node)return;
@@ -706,7 +706,7 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
       const success=recognizedWord.length>0&&recognizedWord===expectedWord;
       submitted2=true;
       $2("recognized-word-live").textContent=recognizedWord||"—";
-      $2("recognized-word-status").textContent=success?"Распознанное слово совпало с ответом":"Распознанный текст можно сравнить с ответом ниже";
+      $2("recognizer-status").textContent=success?"Распознанное слово совпало с ответом":"Распознанный текст можно сравнить с ответом ниже";
       characters.forEach((glyph,index)=>applyRecognition2(index,cellVersions2[index],candidateLists2[index]));
       const summary=$2("analysis-summary");
       summary.textContent=success
