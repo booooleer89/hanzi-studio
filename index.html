@@ -533,6 +533,7 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     if(submitted2||attemptBusy2)return;
     event.preventDefault();
     try{canvas.setPointerCapture(event.pointerId);}catch(_){}
+    if(candidateMatches2.length){strokes2=[];ctx.clearRect(0,0,SIZE,SIZE);}
     candidateMatches2=[];$2("candidates-panel").classList.add("hidden");$2("recognition-candidates").replaceChildren();
     activeStroke2=[localPoint2(event)];strokes2.push(activeStroke2);
     const [x,y]=strokeToCanvas2(activeStroke2[0]);
