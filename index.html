@@ -220,14 +220,12 @@ th{background:#f7f9fc;color:var(--muted)}
  .recognized-word-box{margin-left:auto;margin-right:auto}
  .recognized-word-value{font-size:28px}
 }
-.system-writing-label{display:block;margin:14px 0 6px;color:#202124;font-size:14px;font-weight:650}
-.system-writing-input{display:block;width:100%;min-height:76px;margin:0 auto;padding:14px 18px;border:1px solid #d8e2f0;border-radius:14px;background:#fff;color:#111827;font:30px/1.35 "Noto Serif CJK SC","Songti SC","SimSun",serif;letter-spacing:1px;box-shadow:0 2px 10px rgba(16,24,40,.035)}
-.system-writing-input:focus{outline:3px solid rgba(39,100,216,.16);border-color:#2764d8}
-.system-writing-input::placeholder{color:#98a2b3;font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:0}
-.manual-drawing{max-width:760px;margin:16px auto 4px}
-.manual-drawing summary{width:max-content;max-width:100%;padding:8px 0;color:#2764d8;font-size:13px;font-weight:600;cursor:pointer}
-.manual-drawing[open] summary{margin-bottom:6px}
-@media(max-width:540px){.system-writing-input{min-height:68px;font-size:27px;padding:12px 14px}}
+.handwriting-canvas{display:block;width:min(100%,560px);height:auto;aspect-ratio:1;margin:12px auto 0;border:1px solid #d8e2f0;border-radius:18px;touch-action:none;background:#fff;background-image:linear-gradient(to right,transparent calc(50% - .5px),#edf1f7 50%,transparent calc(50% + .5px)),linear-gradient(to bottom,transparent calc(50% - .5px),#edf1f7 50%,transparent calc(50% + .5px));box-shadow:0 3px 16px rgba(16,24,40,.04)}
+.handwriting-canvas:focus{outline:3px solid rgba(39,100,216,.16);border-color:#2764d8}
+.candidates-panel{max-width:600px;margin:14px auto 0;padding:13px 15px;border:1px solid #dce8ff;border-radius:13px;background:#f7faff}
+.candidates-panel .recognition-candidates{gap:8px;margin-top:9px}
+.candidates-panel .recognition-candidate{min-width:44px;min-height:44px;border-radius:10px;font-size:25px;cursor:pointer}
+@media(max-width:540px){.handwriting-canvas{width:100%;border-radius:14px}.candidates-panel{padding:11px}}
 </style>
 </head>
 <body>
@@ -241,7 +239,7 @@ th{background:#f7f9fc;color:var(--muted)}
 </aside></div></div></header>
 <div class="layout"><main>
 <section id="practice">
-<h1>Практика письма</h1><div class="sub">Напиши слово Apple Pencil или рукописной клавиатурой. Нажми «Сравнить слово», чтобы проверить результат.</div>
+<h1>Практика письма</h1><div class="sub">Нарисуй слово по одному иероглифу пальцем, мышью или стилусом. Выбирай распознанный знак, собери ответ и сравни его.</div>
 <div class="toolbar"><select id="level"><option value="1">HSK 1 · 554 слов</option><option value="2">HSK 2 · 301 слово</option><option value="3">HSK 3 · 561 слово</option><option value="4">HSK 4 · 1 096 слов</option><option value="5">HSK 5 · 1 724 слова</option><option value="6">HSK 6 · 2 111 слов</option><option value="7-9">HSK 7–9 · 6 226 слов</option><option value="all">Все уровни</option></select>
 <select id="mode"><option value="sequence" selected>По алфавиту (пиньинь)</option><option value="random">Случайный порядок</option><option value="mistakes">Мои ошибки</option></select><button class="btn" id="skip">Пропустить</button></div>
 <div class="card">
@@ -249,15 +247,13 @@ th{background:#f7f9fc;color:var(--muted)}
 <div class="center"><div class="pinyin" id="pinyin">hǎo</div>
 <div class="translation-row"><span class="short-translation" id="short-translation"></span></div>
 <div class="muted" style="font-size:12px;margin-top:12px">Оригинал и разбор ошибок появятся только после отправки слова.</div></div>
-<div class="pad"><div class="padlabel">На iPad пиши Apple Pencil прямо в поле — система превратит почерк в текст. На других устройствах используй рукописную клавиатуру.</div>
-<label class="system-writing-label" for="handwriting-input">Твой ответ</label>
-<input id="handwriting-input" class="system-writing-input" type="text" lang="zh-CN" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-label="Поле для рукописного ввода иероглифов" placeholder="Напиши здесь китайское слово">
-<div class="recognized-word-box" aria-live="polite"><span class="recognized-word-label">Распознано как</span><strong class="recognized-word-value" id="recognized-word-live">—</strong><span class="recognized-word-status" id="recognizer-status">Сравнение запустится по кнопке.</span></div>
-<details class="manual-drawing"><summary>Или нарисуй иероглифы вручную</summary>
-<div class="padlabel">Запасной вариант: рисуй мышью, пальцем или стилусом.</div>
-<div id="writing-panels"></div>
-</details>
-<div class="actions"><button class="btn" id="clear">Очистить всё</button><button class="btn primary" id="submit-writing">Сравнить слово</button></div>
+<div class="pad">
+<div class="padlabel">Рисуй каждый иероглиф в большом поле. После распознавания выбери нужный знак — он добавится в ответ.</div>
+<canvas id="handwriting-canvas" class="handwriting-canvas" width="640" height="640" aria-label="Большое поле для рисования китайского иероглифа"></canvas>
+<div class="actions"><button class="btn" id="clear">Очистить знак</button><button class="btn primary" id="recognize-glyph" disabled>Распознать знак</button></div>
+<div id="candidates-panel" class="candidates-panel hidden" aria-live="polite"><div class="recognized-output-label">Выбери распознанный иероглиф</div><div id="recognition-candidates" class="recognition-candidates"></div></div>
+<div class="recognized-word-box" aria-live="polite"><span class="recognized-word-label">Твой ответ</span><strong class="recognized-word-value" id="recognized-word-live">—</strong><span class="recognized-word-status" id="recognizer-status">Рисуй знак и нажми «Распознать знак».</span></div>
+<div class="actions"><button class="btn" id="clear-answer" disabled>Очистить слово</button><button class="btn primary" id="submit-writing" disabled>Сравнить слово</button></div>
 <div class="feedback" id="feedback">Загружаю слова…</div>
 <div id="analysis-panel" class="hidden">
  <div class="result-summary" id="analysis-summary"></div>
@@ -268,7 +264,7 @@ th{background:#f7f9fc;color:var(--muted)}
 </div>
 <div class="next"><span class="muted" id="accuracy" style="font-size:12px">Слова: 0 · Повторить: 0</span><button class="btn primary" id="next">Следующее слово →</button></div>
 </div>
-<div class="notice">Сайт сравнивает полученный текст с ответом только после нажатия «Сравнить слово». Если рукописный ввод недоступен, можно нарисовать иероглифы вручную.</div>
+<div class="notice">Рисуй пальцем, мышью или стилусом. Выбери печатные варианты знаков, собери слово и сравни его с заданием.</div>
 </section>
 <section id="words" class="hidden"><h1>Словарь HSK</h1><div class="sub">Слова по уровням HSK с русскими переводами. Поиск по иероглифам, пиньиню и русскому переводу.</div>
 <div class="toolbar"><select id="wordlevel"><option value="all">Все уровни</option><option value="1">HSK 1</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option><option value="5">HSK 5</option><option value="6">HSK 6</option><option value="7-9">HSK 7–9</option></select><input id="search" placeholder="По-китайски, пиньиню или по-русски"></div>
@@ -487,12 +483,75 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     "https://cdn.jsdelivr.net/gh/gugray/hanzi_lookup@01f90c3ab99a8fadf0696c28e5eb097223c500db/web_demo/hanzi_lookup_bg.wasm",
     "https://raw.githubusercontent.com/gugray/hanzi_lookup/01f90c3ab99a8fadf0696c28e5eb097223c500db/web_demo/hanzi_lookup_bg.wasm"
   ];
-  let drawings2=[],wordCharacters2=[],recognizedCharacters2=[],candidateLists2=[],selectedCandidate2=[];
-  let outputNodes2=[],cellVersions2=[],recognizedVersions2=[],recognitionTimers2=[];
-  let submitted2=false,attemptBusy2=false,recognitionWorker2=null,recognitionReady2=null;
-  let requestId2=0,pendingRecognition2=new Map();
+  const canvas=$2("handwriting-canvas"),ctx=canvas.getContext("2d");
+  let strokes2=[],activeStroke2=null,candidateMatches2=[],answer2="",submitted2=false,attemptBusy2=false;
+  let recognitionWorker2=null,recognitionReady2=null,requestId2=0,pendingRecognition2=new Map();
+  ctx.lineCap="round";ctx.lineJoin="round";ctx.strokeStyle="#111827";ctx.fillStyle="#111827";ctx.lineWidth=13;
 
-  function isHan2(ch){return /\p{Script=Han}/u.test(ch);}
+  function hasInk2(){return strokes2.some(stroke=>Array.isArray(stroke)&&stroke.length>0);}
+  function updateWorkspace2(){
+    const ink=hasInk2(),hasCandidates=candidateMatches2.length>0;
+    $2("recognized-word-live").textContent=answer2||"—";
+    $2("recognize-glyph").disabled=!ink||attemptBusy2||submitted2;
+    $2("clear").disabled=(!ink&&!hasCandidates)||attemptBusy2||submitted2;
+    $2("clear-answer").disabled=!answer2&&!submitted2;
+    $2("submit-writing").disabled=!answer2||ink||hasCandidates||attemptBusy2||submitted2;
+    if(!submitted2){
+      if(attemptBusy2)$2("recognizer-status").textContent="Распознаю знак…";
+      else if(hasCandidates)$2("recognizer-status").textContent="Выбери знак, чтобы добавить его к слову";
+      else if(ink)$2("recognizer-status").textContent="Нажми «Распознать знак»";
+      else $2("recognizer-status").textContent=answer2?"Рисуй следующий знак или сравни слово":"Рисуй знак пальцем, мышью или стилусом";
+    }
+  }
+  function clearInk2(){
+    strokes2=[];activeStroke2=null;candidateMatches2=[];
+    ctx.clearRect(0,0,SIZE,SIZE);
+    $2("candidates-panel").classList.add("hidden");
+    $2("recognition-candidates").replaceChildren();
+    updateWorkspace2();
+  }
+  function renderWritingPanels2(){
+    submitted2=false;attemptBusy2=false;answer2="";
+    $2("analysis-panel").classList.add("hidden");
+    $2("retry-writing").classList.remove("hidden");
+    $2("retry-writing").disabled=false;
+    $2("clear").textContent="Очистить знак";
+    $2("clear-answer").textContent="Очистить слово";
+    $2("submit-writing").textContent="Сравнить слово";
+    clearInk2();
+    if(current&&current.word)$2("feedback").textContent="Рисуй по одному знаку, выбирай подходящий вариант и затем сравни слово.";
+  }
+  function localPoint2(event){
+    const rect=canvas.getBoundingClientRect();
+    return [
+      Math.max(0,Math.min(GRID,(event.clientX-rect.left)/rect.width*GRID)),
+      Math.max(0,Math.min(GRID,(event.clientY-rect.top)/rect.height*GRID))
+    ];
+  }
+  function strokeToCanvas2(point){return [point[0]/GRID*SIZE,point[1]/GRID*SIZE];}
+  canvas.addEventListener("pointerdown",event=>{
+    if(submitted2||attemptBusy2)return;
+    event.preventDefault();
+    try{canvas.setPointerCapture(event.pointerId);}catch(_){}
+    candidateMatches2=[];$2("candidates-panel").classList.add("hidden");$2("recognition-candidates").replaceChildren();
+    activeStroke2=[localPoint2(event)];strokes2.push(activeStroke2);
+    const [x,y]=strokeToCanvas2(activeStroke2[0]);
+    ctx.beginPath();ctx.arc(x,y,6.5,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(x,y);
+    updateWorkspace2();
+  });
+  canvas.addEventListener("pointermove",event=>{
+    if(!activeStroke2||submitted2||attemptBusy2)return;
+    event.preventDefault();
+    const point=localPoint2(event),last=activeStroke2[activeStroke2.length-1];
+    if(Math.hypot(point[0]-last[0],point[1]-last[1])<1.5)return;
+    activeStroke2.push(point);
+    const [x,y]=strokeToCanvas2(point);ctx.lineTo(x,y);ctx.stroke();
+  });
+  const endStroke2=()=>{if(!activeStroke2)return;activeStroke2=null;updateWorkspace2();};
+  canvas.addEventListener("pointerup",endStroke2);
+  canvas.addEventListener("pointercancel",endStroke2);
+  canvas.addEventListener("lostpointercapture",endStroke2);
+
   function startRecognizer2(){
     if(recognitionReady2)return recognitionReady2;
     const promise=new Promise((resolve,reject)=>{
@@ -508,15 +567,9 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
           const data=event.data||{};
           if(data.type==="ready"){
             if(!settled){settled=true;if(timer)clearTimeout(timer);resolve(true);}
-            $2("recognizer-status").textContent="Рукописный ввод готов";
-            outputNodes2.forEach(node=>{if(node&&node.status.textContent==="Подключаю распознавание…")node.status.textContent="Рисуй — печатный знак появится ниже";});
             return;
           }
-          if(data.type==="init-error"){
-            fail(new Error(data.message||"Не удалось загрузить модель"));
-            $2("recognizer-status").textContent="Не удалось загрузить распознавание";
-            return;
-          }
+          if(data.type==="init-error"){fail(new Error(data.message||"Не удалось загрузить модель"));return;}
           const pending=pendingRecognition2.get(data.id);
           if(!pending)return;
           pendingRecognition2.delete(data.id);clearTimeout(pending.timer);
@@ -527,13 +580,11 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
           const error=new Error(event.message||"Ошибка модуля распознавания");
           fail(error);
           pendingRecognition2.forEach(p=>{clearTimeout(p.timer);p.reject(error);});
-          pendingRecognition2.clear();
-          recognitionReady2=null;recognitionWorker2=null;
-          $2("recognizer-status").textContent="Не удалось загрузить распознавание";
+          pendingRecognition2.clear();recognitionReady2=null;recognitionWorker2=null;
         };
         timer=setTimeout(()=>fail(new Error("Таймаут загрузки модели")),30000);
         recognitionWorker2.postMessage({type:"init",wasmUrls:WASM_URLS});
-      }catch(error){fail(error);$2("recognizer-status").textContent="Не удалось запустить распознавание";}
+      }catch(error){fail(error);}
     });
     recognitionReady2=promise.catch(error=>{
       if(recognitionWorker2){try{recognitionWorker2.terminate();}catch(_){}}
@@ -541,147 +592,38 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     });
     return recognitionReady2;
   }
-  function hasInk2(strokes){return Array.isArray(strokes)&&strokes.some(stroke=>Array.isArray(stroke)&&stroke.length>0);}
-  function updateWordPreview2(){
-    const input=$2("handwriting-input");
-    const systemText=String(input&&input.value||"").trim();
-    if(systemText){
-      $2("recognized-word-live").textContent=systemText;
-      $2("recognizer-status").textContent="Текст готов — нажми «Сравнить слово»";
-      return;
-    }
-    const ink=drawings2.some(hasInk2);
-    const value=recognizedCharacters2.map((ch,i)=>ch||(hasInk2(drawings2[i])?"…":"")).join("");
-    $2("recognized-word-live").textContent=value||"—";
-    $2("recognizer-status").textContent=ink?"Нажми «Сравнить слово» — распознаю готовый рисунок":"Напиши выше или нарисуй вручную, затем сравни";
-  }
-  function renderCandidates2(index,matches){
-    const node=outputNodes2[index];if(!node)return;
-    node.candidates.replaceChildren();
-    (matches||[]).slice(0,8).forEach((match,i)=>{
-      const glyph=String(match.hanzi||"");
-      if(!glyph)return;
-      const button=document.createElement("button");
-      button.type="button";button.className="recognition-candidate"+(recognizedCharacters2[index]===glyph?" selected":"");
-      button.textContent=glyph;button.setAttribute("aria-label","Выбрать вариант "+glyph);
-      button.onclick=()=>{
-        if(attemptBusy2)return;
-        if(submitted2){
-          const shownWord=recognizedCharacters2.join("").normalize("NFC");
-          const expectedWord=String(current&&current.word||"").normalize("NFC");
-          if(shownWord===expectedWord)return;
-          submitted2=false;
-          $2("analysis-panel").classList.add("hidden");
-          $2("retry-writing").classList.add("hidden");
-          $2("submit-writing").disabled=false;
-          $2("feedback").textContent="Вариант выбран. Нажми «Сравнить слово» ещё раз.";
-        }
-        recognizedCharacters2[index]=glyph;selectedCandidate2[index]=true;
-        node.print.textContent=glyph;node.status.textContent="Выбран печатный знак";
-        $2("submit-writing").textContent="Сравнить выбранный вариант";
-        renderCandidates2(index,candidateLists2[index]);updateWordPreview2();
-      };
-      node.candidates.appendChild(button);
-    });
-  }
-  function applyRecognition2(index,version,matches){
-    if(version!==cellVersions2[index]||submitted2)return;
-    const list=Array.isArray(matches)?matches:[];
-    candidateLists2[index]=list;
-    if(!selectedCandidate2[index])recognizedCharacters2[index]=String(list[0]?.hanzi||"");
-    recognizedVersions2[index]=version;
-    const node=outputNodes2[index];
-    if(node){
-      node.print.textContent=recognizedCharacters2[index]||"—";
-      node.status.textContent=recognizedCharacters2[index]?"Распознано печатным знаком":"Не получилось распознать — попробуй ещё раз";
-    }
-    renderCandidates2(index,list);updateWordPreview2();
-  }
-  async function recognizeCharacter2(index,version){
-    if(!hasInk2(drawings2[index]))return [];
-    await startRecognizer2();
-    if(version!==cellVersions2[index])return [];
-    const id=++requestId2;
-    const strokes=drawings2[index].map(stroke=>stroke.map(point=>[Number(point[0]),Number(point[1])]));
-    const matches=await new Promise((resolve,reject)=>{
-      const timer=setTimeout(()=>{pendingRecognition2.delete(id);reject(new Error("Истекло время распознавания"));},12000);
-      pendingRecognition2.set(id,{resolve,reject,timer});
-      recognitionWorker2.postMessage({type:"recognize",id,strokes,limit:8});
-    });
-    applyRecognition2(index,version,matches);
-    return matches;
-  }
-  function scheduleRecognition2(index){
-    if(!hasInk2(drawings2[index]))return;
-    const node=outputNodes2[index];
-    if(node)node.status.textContent="Готово к распознаванию";
-    updateWordPreview2();
-  }
-  function makeCanvas2(index){
-    const cell=document.createElement("div");cell.className="write-cell";
-    const label=document.createElement("div");label.className="write-cell-label";label.textContent="Иероглиф "+(index+1);
-    const canvas=document.createElement("canvas");canvas.className="write-canvas";canvas.width=SIZE;canvas.height=SIZE;
-    canvas.setAttribute("aria-label","Поле для написания иероглифа "+(index+1));
-    cell.appendChild(label);cell.appendChild(canvas);
-    const output=document.createElement("div");output.className="recognized-output";
-    const outputLabel=document.createElement("div");outputLabel.className="recognized-output-label";outputLabel.textContent="Печатное распознавание";
-    const print=document.createElement("strong");print.className="recognized-print";print.textContent="—";
-    const status=document.createElement("div");status.className="recognized-status";status.textContent="Подключаю распознавание…";
-    const candidates=document.createElement("div");candidates.className="recognition-candidates";
-    output.append(outputLabel,print,status,candidates);cell.appendChild(output);
-    outputNodes2[index]={print,status,candidates};
-    const ctx=canvas.getContext("2d");
-    ctx.lineCap="round";ctx.lineJoin="round";ctx.strokeStyle="#111827";ctx.fillStyle="#111827";ctx.lineWidth=13;
-    const pointsForThisCharacter=[];drawings2[index]=pointsForThisCharacter;
-    cellVersions2[index]=0;recognizedVersions2[index]=-1;selectedCandidate2[index]=false;candidateLists2[index]=[];
-    let active=null;
-    function localPoint(event){
-      const rect=canvas.getBoundingClientRect();
-      return [Math.max(0,Math.min(GRID,(event.clientX-rect.left)/rect.width*GRID)),Math.max(0,Math.min(GRID,(event.clientY-rect.top)/rect.height*GRID))];
-    }
-    canvas.addEventListener("pointerdown",event=>{
-      if(submitted2||attemptBusy2)return;
-      event.preventDefault();
-      if($2("handwriting-input").value)$2("handwriting-input").value="";
-      try{canvas.setPointerCapture(event.pointerId);}catch(_){}
-      cellVersions2[index]++;recognizedVersions2[index]=-1;selectedCandidate2[index]=false;recognizedCharacters2[index]="";candidateLists2[index]=[];
-      if(recognitionTimers2[index])clearTimeout(recognitionTimers2[index]);
-      renderCandidates2(index,[]);
-      print.textContent="…";status.textContent="Пишешь…";updateWordPreview2();
-      active=[localPoint(event)];pointsForThisCharacter.push(active);
-      const point=localPoint(event),x=point[0]/GRID*SIZE,y=point[1]/GRID*SIZE;
-      ctx.beginPath();ctx.arc(x,y,6.5,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(x,y);
-    });
-    canvas.addEventListener("pointermove",event=>{
-      if(!active||submitted2||attemptBusy2)return;
-      event.preventDefault();
-      const point=localPoint(event),last=active[active.length-1];
-      if(Math.hypot(point[0]-last[0],point[1]-last[1])<1.5)return;
-      active.push(point);ctx.lineTo(point[0]/GRID*SIZE,point[1]/GRID*SIZE);ctx.stroke();
-    });
-    const end=()=>{if(!active)return;active=null;scheduleRecognition2(index);};
-    canvas.addEventListener("pointerup",end);canvas.addEventListener("pointercancel",end);canvas.addEventListener("lostpointercapture",end);
-    return cell;
-  }
-  function renderWritingPanels2(){
-    submitted2=false;attemptBusy2=false;
-    $2("submit-writing").textContent="Сравнить слово";
-    $2("clear").textContent="Очистить всё";$2("clear").disabled=false;
-    $2("analysis-panel").classList.add("hidden");
-    $2("handwriting-input").value="";
-    wordCharacters2=(current&&current.word?Array.from(current.word).filter(isHan2):[]);
-    drawings2=[];recognizedCharacters2=wordCharacters2.map(()=> "");candidateLists2=wordCharacters2.map(()=>[]);
-    outputNodes2=[];cellVersions2=[];recognizedVersions2=[];selectedCandidate2=[];recognitionTimers2=[];
-    const host=$2("writing-panels");host.innerHTML="";
-    if(!wordCharacters2.length){
-      host.innerHTML='<div class="quiz-loading">В слове не найдено иероглифов для написания.</div>';
-      $2("submit-writing").disabled=true;$2("recognized-word-live").textContent="—";return;
-    }
-    wordCharacters2.forEach((_,index)=>host.appendChild(makeCanvas2(index)));
-    $2("submit-writing").disabled=false;$2("clear").disabled=false;$2("retry-writing").disabled=false;
-    $2("feedback").textContent="Напиши ответ в поле выше или открой ручное рисование, затем нажми «Сравнить слово».";
-    updateWordPreview2();
-    outputNodes2.forEach(node=>{if(node)node.status.textContent="После рисунка нажми «Сравнить слово»";});
+  async function recognizeGlyph2(){
+    if(!hasInk2()||attemptBusy2||submitted2)return;
+    attemptBusy2=true;updateWorkspace2();
+    $2("feedback").textContent="Распознаю знак…";
+    try{
+      await startRecognizer2();
+      const id=++requestId2,strokes=strokes2.map(stroke=>stroke.map(point=>[Number(point[0]),Number(point[1])]));
+      const matches=await new Promise((resolve,reject)=>{
+        const timer=setTimeout(()=>{pendingRecognition2.delete(id);reject(new Error("Истекло время распознавания"));},12000);
+        pendingRecognition2.set(id,{resolve,reject,timer});
+        recognitionWorker2.postMessage({type:"recognize",id,strokes,limit:8});
+      });
+      candidateMatches2=(matches||[]).slice(0,8);
+      const host=$2("recognition-candidates");host.replaceChildren();
+      candidateMatches2.forEach(match=>{
+        const glyph=String(match.hanzi||"");if(!glyph)return;
+        const button=document.createElement("button");
+        button.type="button";button.className="recognition-candidate";button.textContent=glyph;
+        button.setAttribute("aria-label","Добавить иероглиф "+glyph);
+        button.onclick=()=>{
+          if(attemptBusy2||submitted2)return;
+          answer2+=glyph;clearInk2();$2("feedback").textContent="Знак добавлен. Можешь рисовать следующий.";
+        };
+        host.appendChild(button);
+      });
+      if(candidateMatches2.length){$2("candidates-panel").classList.remove("hidden");$2("feedback").textContent="Выбери вариант, который ты написала.";}
+      else{$2("feedback").textContent="Не получилось распознать знак. Попробуй написать его крупнее и нажми «Распознать знак» ещё раз.";}
+    }catch(error){
+      console.error("Hanzi handwriting recognition error",error);
+      $2("feedback").textContent="Распознавание не загрузилось. Проверь интернет и попробуй ещё раз.";
+      $2("recognizer-status").textContent="Не удалось запустить распознавание";
+    }finally{attemptBusy2=false;updateWorkspace2();}
   }
   function buildCharResult2(expected,recognized){
     const card=document.createElement("div");card.className="result-char";
@@ -711,76 +653,55 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
     }
     return card;
   }
-  async function resolveCharacter2(index){
-    const version=cellVersions2[index];
-    if(selectedCandidate2[index]&&recognizedVersions2[index]===version&&recognizedCharacters2[index])return recognizedCharacters2[index];
-    const matches=await recognizeCharacter2(index,version);
-    return String(matches[0]?.hanzi||"");
-  }
   async function submitWriting2(){
-    if(submitted2||attemptBusy2||!current)return;
-    attemptBusy2=true;$2("submit-writing").disabled=true;$2("clear").disabled=true;$2("skip").disabled=true;$2("next").disabled=true;
-    $2("feedback").textContent="Преобразую рисунок в печатные иероглифы…";
-    $2("recognizer-status").textContent="Распознаю слово…";
-    const wordAtSubmit=current.word;
+    if(submitted2||attemptBusy2||!current||!answer2)return;
+    attemptBusy2=true;updateWorkspace2();
+    $2("feedback").textContent="Сравниваю собранное слово с ответом…";
+    const wordAtSubmit=current.word,recognizedWord=answer2.normalize("NFC"),expectedWord=String(wordAtSubmit||"").normalize("NFC");
     try{
-      const systemText=String($2("handwriting-input").value||"").normalize("NFC").replace(/[\s\u3000]+/gu,"");
-      const characters=systemText
-        ?Array.from(systemText)
-        :await Promise.all(wordCharacters2.map((_,index)=>resolveCharacter2(index)));
-      if(!current||current.word!==wordAtSubmit)return;
-      const recognizedWord=(systemText||characters.join("")).normalize("NFC");
-      const expectedWord=String(wordAtSubmit||"").normalize("NFC");
-      const success=recognizedWord.length>0&&recognizedWord===expectedWord;
+      const success=recognizedWord===expectedWord;
       submitted2=true;
-      $2("recognized-word-live").textContent=recognizedWord||"—";
-      $2("recognizer-status").textContent=success?"Распознанное слово совпало с ответом":"Распознанный текст можно сравнить с ответом ниже";
-      characters.forEach((glyph,index)=>applyRecognition2(index,cellVersions2[index],candidateLists2[index]));
-      const summary=$2("analysis-summary");
-      summary.textContent=success
-        ?"Распознано «"+recognizedWord+"» — правильно!"
-        :"Распознано «"+(recognizedWord||"ничего")+"», а нужно «"+expectedWord+"». Попробуй ещё раз.";
+      $2("recognized-word-live").textContent=recognizedWord;
+      $2("recognizer-status").textContent=success?"Слово совпало с ответом":"Сравни с заданием и попробуй ещё раз";
+      const expectedChars=Array.from(expectedWord),recognizedChars=Array.from(recognizedWord);
       const list=$2("result-list");list.replaceChildren();
-      wordCharacters2.forEach((expected,index)=>list.appendChild(buildCharResult2(expected,characters[index]||"")));
+      expectedChars.forEach((expected,index)=>list.appendChild(buildCharResult2(expected,recognizedChars[index]||"")));
+      $2("analysis-summary").textContent=success
+        ?"Распознано «"+recognizedWord+"» — правильно!"
+        :"Распознано «"+recognizedWord+"», а нужно «"+expectedWord+"». Попробуй ещё раз.";
       $2("analysis-panel").classList.remove("hidden");
-      $2("feedback").textContent=success?"Распознанное слово совпало с заданным. Слово засчитано!":"Распознанное слово не совпало. Напиши его ещё раз.";
-      $2("submit-writing").disabled=true;$2("clear").disabled=false;$2("clear").textContent="Ещё одна попытка";
       $2("retry-writing").classList.toggle("hidden",success);$2("retry-writing").disabled=success;
       $2("next").disabled=false;$2("skip").disabled=false;
-      $2("analysis-panel").scrollIntoView({behavior:"smooth",block:"nearest"});
       if(typeof rate==="function")rate(success);
+      $2("feedback").textContent=success?"Слово засчитано!":"Слово не совпало. Собери ответ заново и попробуй ещё раз.";
       let history=[];try{history=JSON.parse(localStorage.getItem("hanzi-attempt-history")||"[]")||[];}catch(_){}
       history.unshift({word:wordAtSubmit,recognized:recognizedWord,success,date:new Date().toISOString()});
       try{localStorage.setItem("hanzi-attempt-history",JSON.stringify(history.slice(0,200)));}catch(_){}
     }catch(error){
-      console.error("Hanzi handwriting recognition error",error);
-      submitted2=false;$2("feedback").textContent="Распознавание пока недоступно. Проверь интернет и попробуй ещё раз.";
-      $2("recognizer-status").textContent="Не удалось загрузить модель распознавания";
-      $2("submit-writing").disabled=false;$2("clear").disabled=false;$2("skip").disabled=false;$2("next").disabled=false;
-    }finally{attemptBusy2=false;}
+      console.error("Hanzi word comparison error",error);
+      submitted2=false;$2("feedback").textContent="Не получилось сравнить слово. Попробуй ещё раз.";
+      $2("next").disabled=false;$2("skip").disabled=false;
+    }finally{attemptBusy2=false;updateWorkspace2();}
   }
   function retryWriting2(){
     if(!current)return;
-    $2("analysis-panel").classList.add("hidden");$2("retry-writing").classList.remove("hidden");
-    renderWritingPanels2();$2("feedback").textContent="Новая попытка — напиши ответ в поле или нарисуй его вручную.";
+    renderWritingPanels2();
+    $2("feedback").textContent="Новая попытка — нарисуй и собери слово заново.";
     $2("next").disabled=true;
   }
+  function clearAnswer2(){
+    if(submitted2){renderWritingPanels2();$2("next").disabled=true;}
+    else{answer2="";clearInk2();}
+    $2("feedback").textContent="Ответ очищен. Нарисуй слово заново.";
+    updateWorkspace2();
+  }
   window.renderWritingPanels2=renderWritingPanels2;
-  $2("handwriting-input").addEventListener("input",()=>{
-    if(attemptBusy2)return;
-    if(submitted2){
-      submitted2=false;
-      $2("analysis-panel").classList.add("hidden");
-      $2("retry-writing").classList.add("hidden");
-      $2("submit-writing").disabled=false;
-      $2("submit-writing").textContent="Сравнить слово";
-      $2("feedback").textContent="Текст изменён. Нажми «Сравнить слово» ещё раз.";
-    }
-    updateWordPreview2();
-  });
+  $2("recognize-glyph").onclick=recognizeGlyph2;
   $2("submit-writing").onclick=submitWriting2;
   $2("retry-writing").onclick=retryWriting2;
-  $2("clear").onclick=()=>{if(submitted2)retryWriting2();else renderWritingPanels2();};
+  $2("clear").onclick=clearInk2;
+  $2("clear-answer").onclick=clearAnswer2;
+  renderWritingPanels2();
   load();save();
 })();
 </script>
