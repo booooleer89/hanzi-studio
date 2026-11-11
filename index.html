@@ -676,12 +676,12 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
       });
       const usable=results.filter(x=>!x.result.unavailable);
       const overall=usable.length?Math.round(usable.reduce((a,x)=>a+x.result.score,0)/usable.length):0;
-      const success=usable.length===results.length&&overall>=68&&
-        usable.every(x=>x.result.score>=68&&x.result.matchedCount>=Math.ceil(x.result.expectedCount*.75));
+      const success=usable.length===results.length&&overall>=65&&
+        usable.every(x=>x.result.score>=65&&x.result.matchedCount>=Math.ceil(x.result.expectedCount*.75));
       const summary=$2('analysis-summary');
       summary.textContent='Сходство контуров: '+overall+'%. '+
         (success?'Все иероглифы похожи на образец. Порядок штрихов не учитывался.':
-        'Сравни контур и совпавшие черты ниже. Порядок, направление и число отдельных движений не важны; каждый знак должен набрать не меньше 68%.');
+        'Сравни контур и совпавшие черты ниже. Порядок, направление и число отдельных движений не важны; каждый знак должен набрать не меньше 65%.');
       const resultList=$2('result-list');resultList.innerHTML='';
       results.forEach((item,i)=>resultList.appendChild(buildCharResult2(item.character,i,item.result,drawings2[i]||[])));
       $2('analysis-panel').classList.remove('hidden');
