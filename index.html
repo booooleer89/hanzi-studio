@@ -185,6 +185,25 @@ th{background:#f7f9fc;color:var(--muted)}
 @media(max-width:700px){.shell{padding:18px 14px 32px}.layout{margin-top:25px}.top{flex-direction:row;align-items:center;gap:12px}.top-actions{gap:8px}.status{font-size:11px}.stats{gap:8px}.stat{padding:12px}}
 @media(max-width:480px){.shell{padding:14px 10px 28px}.top{flex-direction:row;align-items:center;gap:8px}.brand-lockup{gap:9px}.brand-mark{width:38px;height:38px;flex-basis:38px}.brand{font-size:18px}.brand-caption{font-size:11px}#status{display:none}.top-actions{margin-left:auto}.menu-button{width:42px;height:42px}.layout{display:block;margin-top:22px}.side{display:block}.toolbar{display:flex}.toolbar select{width:auto;min-width:0;flex:1}.toolbar>.btn{width:auto}.card{padding:14px;border-radius:15px}.head{flex-wrap:wrap;gap:7px}.next{display:flex;align-items:center;justify-content:space-between}.next>.btn{width:auto}.write-cell-label{font-size:11px}.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.stat{min-width:0;padding:10px}.stat b{font-size:21px}.stat span{font-size:11px;line-height:1.3}}
 @media(max-width:360px){.brand-caption{display:none}.toolbar{flex-wrap:wrap}.toolbar select{flex:1 1 42%}}
+
+/* Рукописный ввод: распознанный текст и варианты клавиатуры */
+.recognized-word-box{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;max-width:760px;margin:14px auto 4px;padding:12px 16px;border:1px solid #dce8ff;border-radius:13px;background:#f7faff}
+.recognized-word-label{color:#667085;font-size:12px}
+.recognized-word-value{min-width:46px;color:#2764d8;font:32px/1.2 "Noto Serif CJK SC","Songti SC","SimSun",serif;letter-spacing:2px}
+.recognized-word-status{width:100%;color:#667085;font-size:12px}
+.recognized-output{padding:9px 2px 0;text-align:center}
+.recognized-output-label{color:#667085;font-size:11px}
+.recognized-print{display:block;min-height:34px;color:#2764d8;font:26px/1.2 "Noto Serif CJK SC","Songti SC","SimSun",serif}
+.recognized-status{min-height:18px;color:#667085;font-size:11px}
+.recognition-candidates{display:flex;justify-content:center;gap:5px;flex-wrap:wrap;margin-top:5px}
+.recognition-candidate{min-width:34px;min-height:34px;padding:3px 7px;border:1px solid #e1e7f0;border-radius:8px;background:#fff;color:#344054;font:20px/1 "Noto Serif CJK SC","Songti SC",serif}
+.recognition-candidate:hover,.recognition-candidate.selected{border-color:#8fb0f2;background:#eef4ff;color:#1e4fae}
+.recognition-word-results{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin:8px 0 15px}
+.recognition-word-results>div{min-width:120px;text-align:center}
+.recognition-word-results .result-preview-label{margin-bottom:4px}
+.recognition-word-results .printed-glyph{font-size:42px;min-height:55px}
+.result-match{color:#16845b;font-weight:700}
+.result-mismatch{color:#c2414b;font-weight:700}
 </style>
 </head>
 <body>
@@ -206,9 +225,10 @@ th{background:#f7f9fc;color:var(--muted)}
 <div class="center"><div class="pinyin" id="pinyin">hǎo</div>
 <div class="translation-row"><span class="short-translation" id="short-translation"></span></div>
 <div class="muted" style="font-size:12px;margin-top:12px">Оригинал и разбор ошибок появятся только после отправки слова.</div></div>
-<div class="pad"><div class="padlabel">Напиши слово от руки в поля ниже. После отправки распознавание сравнит рисунок с эталоном.</div>
+<div class="pad"><div class="padlabel">Рисуй каждый иероглиф в своём поле. После паузы распознанный знак появится печатным ниже.</div>
 <div id="writing-panels"></div>
-<div class="actions"><button class="btn" id="clear">Очистить всё</button><button class="btn primary" id="submit-writing">Сохранить и проверить</button></div>
+<div class="recognized-word-box" aria-live="polite"><span class="recognized-word-label">Распознано как</span><strong class="recognized-word-value" id="recognized-word-live">—</strong><span class="recognized-word-status" id="recognizer-status">Загружаю распознавание…</span></div>
+<div class="actions"><button class="btn" id="clear">Очистить всё</button><button class="btn primary" id="submit-writing">Сравнить слово</button></div>
 <div class="feedback" id="feedback">Загружаю слова…</div>
 <div id="analysis-panel" class="hidden">
  <div class="result-summary" id="analysis-summary"></div>
@@ -219,7 +239,7 @@ th{background:#f7f9fc;color:var(--muted)}
 </div>
 <div class="next"><span class="muted" id="accuracy" style="font-size:12px">Слова: 0 · Повторить: 0</span><button class="btn primary" id="next">Следующее слово →</button></div>
 </div>
-<div class="notice">Сначала напиши слово самостоятельно — контур не показывается во время письма. После отправки рисунок сравнивается с печатным эталоном по форме и пропорциям. Если совпадение достаточно точное, слово засчитывается; если нет, его можно переписать. Порядок и направление штрихов не оцениваются.</div>
+<div class="notice">Рисунок распознаётся в печатные иероглифы. Проверка простая: распознанное слово совпало с ответом — правильно; не совпало — попробуй ещё раз.</div>
 </section>
 <section id="words" class="hidden"><h1>Словарь HSK</h1><div class="sub">Слова по уровням HSK с русскими переводами. Поиск по иероглифам, пиньиню и русскому переводу.</div>
 <div class="toolbar"><select id="wordlevel"><option value="all">Все уровни</option><option value="1">HSK 1</option><option value="2">HSK 2</option><option value="3">HSK 3</option><option value="4">HSK 4</option><option value="5">HSK 5</option><option value="6">HSK 6</option><option value="7-9">HSK 7–9</option></select><input id="search" placeholder="По-китайски, пиньиню или по-русски"></div>
@@ -432,361 +452,280 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
 
 <script>
 (function(){
-  const $2 = id => document.getElementById(id);
-  const SIZE = 640, GRID = 1024;
-  let drawings2 = [], wordCharacters2 = [], submitted2 = false, attemptBusy2 = false;
+  const $2=id=>document.getElementById(id);
+  const SIZE=640,GRID=1024;
+  const WASM_URLS=[
+    "https://cdn.jsdelivr.net/gh/gugray/hanzi_lookup@01f90c3ab99a8fadf0696c28e5eb097223c500db/web_demo/hanzi_lookup_bg.wasm",
+    "https://raw.githubusercontent.com/gugray/hanzi_lookup/01f90c3ab99a8fadf0696c28e5eb097223c500db/web_demo/hanzi_lookup_bg.wasm"
+  ];
+  let drawings2=[],wordCharacters2=[],recognizedCharacters2=[],candidateLists2=[],selectedCandidate2=[];
+  let outputNodes2=[],cellVersions2=[],recognizedVersions2=[],recognitionTimers2=[];
+  let submitted2=false,attemptBusy2=false,recognitionWorker2=null,recognitionReady2=null;
+  let requestId2=0,pendingRecognition2=new Map();
 
-  function isHan2(ch){
-    const cp=ch.codePointAt(0);
-    return (cp>=0x3400&&cp<=0x9FFF)||(cp>=0xF900&&cp<=0xFAFF);
+  function isHan2(ch){return /\p{Script=Han}/u.test(ch);}
+  function startRecognizer2(){
+    if(recognitionReady2)return recognitionReady2;
+    const promise=new Promise((resolve,reject)=>{
+      let settled=false,timer=null;
+      const fail=error=>{
+        if(settled)return;
+        settled=true;if(timer)clearTimeout(timer);
+        reject(error instanceof Error?error:new Error(String(error||"Recognition unavailable")));
+      };
+      try{
+        recognitionWorker2=new Worker(new URL("./vendor/hanzi_lookup/worker.js",location.href));
+        recognitionWorker2.onmessage=event=>{
+          const data=event.data||{};
+          if(data.type==="ready"){
+            if(!settled){settled=true;if(timer)clearTimeout(timer);resolve(true);}
+            $2("recognizer-status").textContent="Рукописный ввод готов";
+            outputNodes2.forEach(node=>{if(node&&node.status.textContent==="Подключаю распознавание…")node.status.textContent="Рисуй — печатный знак появится ниже";});
+            return;
+          }
+          if(data.type==="init-error"){
+            fail(new Error(data.message||"Не удалось загрузить модель"));
+            $2("recognizer-status").textContent="Не удалось загрузить распознавание";
+            return;
+          }
+          const pending=pendingRecognition2.get(data.id);
+          if(!pending)return;
+          pendingRecognition2.delete(data.id);clearTimeout(pending.timer);
+          if(data.type==="result")pending.resolve(Array.isArray(data.matches)?data.matches:[]);
+          else pending.reject(new Error(data.message||"Ошибка распознавания"));
+        };
+        recognitionWorker2.onerror=event=>{
+          const error=new Error(event.message||"Ошибка модуля распознавания");
+          fail(error);
+          pendingRecognition2.forEach(p=>{clearTimeout(p.timer);p.reject(error);});
+          pendingRecognition2.clear();
+          recognitionReady2=null;recognitionWorker2=null;
+          $2("recognizer-status").textContent="Не удалось загрузить распознавание";
+        };
+        timer=setTimeout(()=>fail(new Error("Таймаут загрузки модели")),30000);
+        recognitionWorker2.postMessage({type:"init",wasmUrls:WASM_URLS});
+      }catch(error){fail(error);$2("recognizer-status").textContent="Не удалось запустить распознавание";}
+    });
+    recognitionReady2=promise.catch(error=>{
+      if(recognitionWorker2){try{recognitionWorker2.terminate();}catch(_){}}
+      recognitionWorker2=null;recognitionReady2=null;throw error;
+    });
+    return recognitionReady2;
+  }
+  function hasInk2(strokes){return Array.isArray(strokes)&&strokes.some(stroke=>Array.isArray(stroke)&&stroke.length>0);}
+  function updateWordPreview2(){
+    const ink=drawings2.some(hasInk2);
+    const value=recognizedCharacters2.map((ch,i)=>ch||(hasInk2(drawings2[i])?"…":"")).join("");
+    $2("recognized-word-live").textContent=value||"—";
+    $2("recognized-word-status").textContent=ink?"Печатный вариант обновляется по мере письма":"Нарисуй слово — здесь появится распознанный текст";
+  }
+  function renderCandidates2(index,matches){
+    const node=outputNodes2[index];if(!node)return;
+    node.candidates.replaceChildren();
+    (matches||[]).slice(0,5).forEach((match,i)=>{
+      const glyph=String(match.hanzi||"");
+      if(!glyph)return;
+      const button=document.createElement("button");
+      button.type="button";button.className="recognition-candidate"+(recognizedCharacters2[index]===glyph?" selected":"");
+      button.textContent=glyph;button.setAttribute("aria-label","Выбрать вариант "+glyph);
+      button.onclick=()=>{
+        if(submitted2||attemptBusy2)return;
+        recognizedCharacters2[index]=glyph;selectedCandidate2[index]=true;
+        node.print.textContent=glyph;node.status.textContent="Выбран печатный знак";
+        renderCandidates2(index,candidateLists2[index]);updateWordPreview2();
+      };
+      node.candidates.appendChild(button);
+    });
+  }
+  function applyRecognition2(index,version,matches){
+    if(version!==cellVersions2[index]||submitted2)return;
+    const list=Array.isArray(matches)?matches:[];
+    candidateLists2[index]=list;
+    if(!selectedCandidate2[index])recognizedCharacters2[index]=String(list[0]?.hanzi||"");
+    recognizedVersions2[index]=version;
+    const node=outputNodes2[index];
+    if(node){
+      node.print.textContent=recognizedCharacters2[index]||"—";
+      node.status.textContent=recognizedCharacters2[index]?"Распознано печатным знаком":"Не получилось распознать — попробуй ещё раз";
+    }
+    renderCandidates2(index,list);updateWordPreview2();
+  }
+  async function recognizeCharacter2(index,version){
+    if(!hasInk2(drawings2[index]))return [];
+    await startRecognizer2();
+    if(version!==cellVersions2[index])return [];
+    const id=++requestId2;
+    const strokes=drawings2[index].map(stroke=>stroke.map(point=>[Number(point[0]),Number(point[1])]));
+    const matches=await new Promise((resolve,reject)=>{
+      const timer=setTimeout(()=>{pendingRecognition2.delete(id);reject(new Error("Истекло время распознавания"));},12000);
+      pendingRecognition2.set(id,{resolve,reject,timer});
+      recognitionWorker2.postMessage({type:"recognize",id,strokes,limit:5});
+    });
+    applyRecognition2(index,version,matches);
+    return matches;
+  }
+  function scheduleRecognition2(index){
+    if(recognitionTimers2[index])clearTimeout(recognitionTimers2[index]);
+    if(!hasInk2(drawings2[index]))return;
+    const version=cellVersions2[index],node=outputNodes2[index];
+    if(node)node.status.textContent="Распознаю написанное…";
+    $2("recognizer-status").textContent="Распознаю рукописный ввод…";
+    recognitionTimers2[index]=setTimeout(()=>{
+      recognizeCharacter2(index,version).catch(error=>{
+        if(version!==cellVersions2[index])return;
+        const node=outputNodes2[index];if(node)node.status.textContent="Распознавание не загрузилось — проверь интернет";
+        $2("recognizer-status").textContent="Проверь подключение к распознаванию";
+      });
+    },320);
   }
   function makeCanvas2(index){
-    const cell=document.createElement('div');
-    cell.className='write-cell';
-    const label=document.createElement('div');
-    label.className='write-cell-label';
-    label.textContent='Иероглиф '+(index+1);
-    const canvas=document.createElement('canvas');
-    canvas.className='write-canvas';
-    canvas.width=SIZE;canvas.height=SIZE;
-    canvas.setAttribute('aria-label','Поле для написания иероглифа '+(index+1));
+    const cell=document.createElement("div");cell.className="write-cell";
+    const label=document.createElement("div");label.className="write-cell-label";label.textContent="Иероглиф "+(index+1);
+    const canvas=document.createElement("canvas");canvas.className="write-canvas";canvas.width=SIZE;canvas.height=SIZE;
+    canvas.setAttribute("aria-label","Поле для написания иероглифа "+(index+1));
     cell.appendChild(label);cell.appendChild(canvas);
-    const ctx=canvas.getContext('2d');
-    ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#252621';ctx.fillStyle='#252621';ctx.lineWidth=13;
-    const pointsForThisCharacter=[];
-    drawings2[index]=pointsForThisCharacter;
+    const output=document.createElement("div");output.className="recognized-output";
+    const outputLabel=document.createElement("div");outputLabel.className="recognized-output-label";outputLabel.textContent="Печатное распознавание";
+    const print=document.createElement("strong");print.className="recognized-print";print.textContent="—";
+    const status=document.createElement("div");status.className="recognized-status";status.textContent="Подключаю распознавание…";
+    const candidates=document.createElement("div");candidates.className="recognition-candidates";
+    output.append(outputLabel,print,status,candidates);cell.appendChild(output);
+    outputNodes2[index]={print,status,candidates};
+    const ctx=canvas.getContext("2d");
+    ctx.lineCap="round";ctx.lineJoin="round";ctx.strokeStyle="#172033";ctx.fillStyle="#172033";ctx.lineWidth=13;
+    const pointsForThisCharacter=[];drawings2[index]=pointsForThisCharacter;
+    cellVersions2[index]=0;recognizedVersions2[index]=-1;selectedCandidate2[index]=false;candidateLists2[index]=[];
     let active=null;
-    function localPoint(e){
-      const r=canvas.getBoundingClientRect();
-      return [Math.max(0,Math.min(GRID,(e.clientX-r.left)/r.width*GRID)),
-              Math.max(0,Math.min(GRID,(e.clientY-r.top)/r.height*GRID))];
+    function localPoint(event){
+      const rect=canvas.getBoundingClientRect();
+      return [Math.max(0,Math.min(GRID,(event.clientX-rect.left)/rect.width*GRID)),Math.max(0,Math.min(GRID,(event.clientY-rect.top)/rect.height*GRID))];
     }
-    canvas.addEventListener('pointerdown',e=>{
+    canvas.addEventListener("pointerdown",event=>{
       if(submitted2||attemptBusy2)return;
-      e.preventDefault();
-      try{canvas.setPointerCapture(e.pointerId)}catch(err){}
-      active=[localPoint(e)];
-      pointsForThisCharacter.push(active);
-      const p=localPoint(e);
-      ctx.beginPath();ctx.arc(p[0]/GRID*SIZE,p[1]/GRID*SIZE,6.5,0,Math.PI*2);ctx.fill();
-      ctx.beginPath();ctx.moveTo(p[0]/GRID*SIZE,p[1]/GRID*SIZE);
+      event.preventDefault();
+      try{canvas.setPointerCapture(event.pointerId);}catch(_){}
+      cellVersions2[index]++;recognizedVersions2[index]=-1;selectedCandidate2[index]=false;recognizedCharacters2[index]="";candidateLists2[index]=[];
+      if(recognitionTimers2[index])clearTimeout(recognitionTimers2[index]);
+      renderCandidates2(index,[]);
+      print.textContent="…";status.textContent="Пишешь…";updateWordPreview2();
+      active=[localPoint(event)];pointsForThisCharacter.push(active);
+      const point=localPoint(event),x=point[0]/GRID*SIZE,y=point[1]/GRID*SIZE;
+      ctx.beginPath();ctx.arc(x,y,6.5,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(x,y);
     });
-    canvas.addEventListener('pointermove',e=>{
+    canvas.addEventListener("pointermove",event=>{
       if(!active||submitted2||attemptBusy2)return;
-      e.preventDefault();
-      const p=localPoint(e),last=active[active.length-1];
-      if(Math.hypot(p[0]-last[0],p[1]-last[1])<1.5)return;
-      active.push(p);
-      ctx.lineTo(p[0]/GRID*SIZE,p[1]/GRID*SIZE);ctx.stroke();
+      event.preventDefault();
+      const point=localPoint(event),last=active[active.length-1];
+      if(Math.hypot(point[0]-last[0],point[1]-last[1])<1.5)return;
+      active.push(point);ctx.lineTo(point[0]/GRID*SIZE,point[1]/GRID*SIZE);ctx.stroke();
     });
-    const end=()=>{active=null;};
-    canvas.addEventListener('pointerup',end);
-    canvas.addEventListener('pointercancel',end);
-    canvas.addEventListener('lostpointercapture',end);
+    const end=()=>{if(!active)return;active=null;scheduleRecognition2(index);};
+    canvas.addEventListener("pointerup",end);canvas.addEventListener("pointercancel",end);canvas.addEventListener("lostpointercapture",end);
     return cell;
   }
   function renderWritingPanels2(){
     submitted2=false;attemptBusy2=false;
-    $2('clear').textContent='Очистить всё';$2('clear').disabled=false;
-    $2('analysis-panel').classList.add('hidden');
+    $2("clear").textContent="Очистить всё";$2("clear").disabled=false;
+    $2("analysis-panel").classList.add("hidden");
     wordCharacters2=(current&&current.word?Array.from(current.word).filter(isHan2):[]);
-    drawings2=[];
-    const host=$2('writing-panels');
-    host.innerHTML='';
+    drawings2=[];recognizedCharacters2=wordCharacters2.map(()=> "");candidateLists2=wordCharacters2.map(()=>[]);
+    outputNodes2=[];cellVersions2=[];recognizedVersions2=[];selectedCandidate2=[];recognitionTimers2=[];
+    const host=$2("writing-panels");host.innerHTML="";
     if(!wordCharacters2.length){
       host.innerHTML='<div class="quiz-loading">В слове не найдено иероглифов для написания.</div>';
-      $2('submit-writing').disabled=true;return;
+      $2("submit-writing").disabled=true;$2("recognized-word-live").textContent="—";return;
     }
-    wordCharacters2.forEach((ch,i)=>host.appendChild(makeCanvas2(i)));
-    $2('submit-writing').disabled=false;
-    $2('clear').disabled=false;
-    $2('retry-writing').disabled=false;
-    $2('feedback').textContent='Пиши спокойно. Сайт не показывает ошибок и подсказок до отправки.';
+    wordCharacters2.forEach((_,index)=>host.appendChild(makeCanvas2(index)));
+    $2("submit-writing").disabled=false;$2("clear").disabled=false;$2("retry-writing").disabled=false;
+    $2("feedback").textContent="Рисуй знак. После паузы он появится печатным вариантом.";
+    updateWordPreview2();
+    startRecognizer2().catch(()=>{outputNodes2.forEach(node=>{if(node)node.status.textContent="Распознавание недоступно — проверь интернет";});});
   }
-  function getBounds2(strokes){
-    const pts=(strokes||[]).flat().filter(p=>Array.isArray(p)&&p.length>=2);
-    if(!pts.length)return null;
-    const xs=pts.map(p=>Number(p[0])),ys=pts.map(p=>Number(p[1]));
-    return {minX:Math.min(...xs),maxX:Math.max(...xs),minY:Math.min(...ys),maxY:Math.max(...ys)};
-  }
-  function resample2(points,count){
-    if(!points||!points.length)return [];
-    if(points.length===1)return Array.from({length:count},()=>[Number(points[0][0]),Number(points[0][1])]);
-    const lengths=[0];
-    for(let i=1;i<points.length;i++)lengths.push(lengths[i-1]+Math.hypot(points[i][0]-points[i-1][0],points[i][1]-points[i-1][1]));
-    const total=lengths[lengths.length-1];
-    if(total<1e-6)return Array.from({length:count},()=>[Number(points[0][0]),Number(points[0][1])]);
-    const result=[];let segment=1;
-    for(let n=0;n<count;n++){
-      const target=total*n/Math.max(1,count-1);
-      while(segment<lengths.length-1&&lengths[segment]<target)segment++;
-      const a=points[segment-1],b=points[segment];
-      const span=lengths[segment]-lengths[segment-1];
-      const t=span>1e-6?(target-lengths[segment-1])/span:0;
-      result.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t]);
-    }
-    return result;
-  }
-  function normalizeStrokeCloud2(strokes,bounds,size){
-    if(!bounds)return [];
-    const w=Math.max(1,bounds.maxX-bounds.minX),h=Math.max(1,bounds.maxY-bounds.minY);
-    const scale=Math.min((size-24)/w,(size-24)/h);
-    const cx=(bounds.minX+bounds.maxX)/2,cy=(bounds.minY+bounds.maxY)/2;
-    const tx=size/2-cx*scale,ty=size/2-cy*scale;
-    return strokes.map(stroke=>{
-      const fitted=stroke.map(p=>[p[0]*scale+tx,p[1]*scale+ty]);
-      let length=0;
-      for(let i=1;i<fitted.length;i++)length+=Math.hypot(fitted[i][0]-fitted[i-1][0],fitted[i][1]-fitted[i-1][1]);
-      const samples=Math.max(8,Math.min(40,Math.ceil(length/5)));
-      return resample2(fitted,samples);
-    });
-  }
-  function directedPointCoverage2(from,to,tolerance){
-    if(!from.length||!to.length)return 0;
-    let sum=0;
-    for(const point of from){
-      let nearest=Infinity;
-      for(const candidate of to){
-        const distance=Math.hypot(point[0]-candidate[0],point[1]-candidate[1]);
-        if(distance<nearest)nearest=distance;
-      }
-      sum+=Math.max(0,1-nearest/tolerance);
-    }
-    return sum/from.length*100;
-  }
-  function pointCloudSimilarity2(a,b,tolerance){
-    return (directedPointCoverage2(a,b,tolerance)+directedPointCoverage2(b,a,tolerance))/2;
-  }
-  function renderInkMask2(strokes,size){
-    const canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;
-    const ctx=canvas.getContext('2d',{willReadFrequently:true});
-    ctx.fillStyle='#fff';ctx.fillRect(0,0,size,size);
-    ctx.strokeStyle='#111';ctx.fillStyle='#111';ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=5;
-    const bounds=getBounds2(strokes);
-    if(!bounds)return {mask:new Uint8Array(size*size),count:0,bounds:null};
-    const w=Math.max(1,bounds.maxX-bounds.minX),h=Math.max(1,bounds.maxY-bounds.minY);
-    const scale=Math.min((size-24)/w,(size-24)/h);
-    const cx=(bounds.minX+bounds.maxX)/2,cy=(bounds.minY+bounds.maxY)/2;
-    const tx=size/2-cx*scale,ty=size/2-cy*scale;
-    for(const stroke of strokes){
-      if(!stroke||!stroke.length)continue;
-      if(stroke.length===1){
-        const x=stroke[0][0]*scale+tx,y=stroke[0][1]*scale+ty;
-        ctx.beginPath();ctx.arc(x,y,ctx.lineWidth/2,0,Math.PI*2);ctx.fill();continue;
-      }
-      ctx.beginPath();ctx.moveTo(stroke[0][0]*scale+tx,stroke[0][1]*scale+ty);
-      for(let i=1;i<stroke.length;i++)ctx.lineTo(stroke[i][0]*scale+tx,stroke[i][1]*scale+ty);
-      ctx.stroke();
-    }
-    const pixels=ctx.getImageData(0,0,size,size).data,mask=new Uint8Array(size*size);
-    let count=0;
-    for(let i=0;i<mask.length;i++){if(pixels[i*4]<128){mask[i]=1;count++;}}
-    return {mask,count,bounds};
-  }
-  function distanceMap2(mask,size){
-    const total=size*size,dist=new Uint16Array(total),queue=new Int32Array(total);
-    dist.fill(65535);let head=0,tail=0;
-    for(let i=0;i<total;i++)if(mask[i]){dist[i]=0;queue[tail++]=i;}
-    while(head<tail){
-      const at=queue[head++],next=dist[at]+1,x=at%size;
-      const neighbors=[];
-      if(x>0)neighbors.push(at-1);
-      if(x<size-1)neighbors.push(at+1);
-      if(at>=size)neighbors.push(at-size);
-      if(at<total-size)neighbors.push(at+size);
-      for(const n of neighbors)if(dist[n]>next){dist[n]=next;queue[tail++]=n;}
-    }
-    return dist;
-  }
-  function contourMask2(mask,size){
-    const edge=new Uint8Array(mask.length);let count=0;
-    for(let y=0;y<size;y++)for(let x=0;x<size;x++){
-      const i=y*size+x;
-      if(!mask[i])continue;
-      if(x===0||x===size-1||y===0||y===size-1||
-         !mask[i-1]||!mask[i+1]||!mask[i-size]||!mask[i+size]){
-        edge[i]=1;count++;
-      }
-    }
-    return {mask:edge,count};
-  }
-  function maskSimilarity2(a,b,size){
-    const edgeA=contourMask2(a.mask,size),edgeB=contourMask2(b.mask,size);
-    if(!edgeA.count||!edgeB.count)return 0;
-    const da=distanceMap2(edgeA.mask,size),db=distanceMap2(edgeB.mask,size);
-    let nearA=0,nearB=0,intersection=0;
-    const tolerance=18;
-    for(let i=0;i<edgeA.mask.length;i++){
-      if(edgeA.mask[i]){nearA+=Math.max(0,1-db[i]/tolerance);if(edgeB.mask[i])intersection++;}
-      if(edgeB.mask[i])nearB+=Math.max(0,1-da[i]/tolerance);
-    }
-    const soft=(nearA/edgeA.count+nearB/edgeB.count)/2*100;
-    const dice=200*intersection/(edgeA.count+edgeB.count);
-    return Math.round(soft*.76+dice*.24);
-  }
-  function scoreCharacter2(userStrokes,charData){
-    const medians=charData&&charData.medians;
-    if(!Array.isArray(medians)||!medians.length)return {unavailable:true,score:0,notes:['Для этого иероглифа нет эталона.']};
-    const expected=medians.map(stroke=>stroke.map(p=>[Number(p[0]),900-Number(p[1])]));
-    const actual=(userStrokes||[]).filter(stroke=>Array.isArray(stroke)&&stroke.length);
-    const actualBounds=getBounds2(actual),expectedBounds=getBounds2(expected);
-    if(!actualBounds)return {score:0,expectedCount:expected.length,actualCount:0,matchedCount:0,notes:['Ты пока не нарисовала этот иероглиф.']};
-
-    const size=128,userMask=renderInkMask2(actual,size),targetMask=renderInkMask2(expected,size);
-    const contourScore=maskSimilarity2(userMask,targetMask,size);
-    const aw=Math.max(1,actualBounds.maxX-actualBounds.minX),ah=Math.max(1,actualBounds.maxY-actualBounds.minY);
-    const ew=Math.max(1,expectedBounds.maxX-expectedBounds.minX),eh=Math.max(1,expectedBounds.maxY-expectedBounds.minY);
-    const ratioError=Math.abs(Math.log(Math.max(.001,(aw/ah)/(ew/eh))));
-    const proportionScore=Math.max(0,100*Math.exp(-ratioError*.9));
-
-    // Точки сравниваются без привязки к порядку и числу касаний. Одно движение может покрывать несколько эталонных черт.
-    const actualLines=normalizeStrokeCloud2(actual,actualBounds,size);
-    const expectedLines=normalizeStrokeCloud2(expected,expectedBounds,size);
-    const actualCloud=actualLines.flat(),expectedCloud=expectedLines.flat();
-    const tolerance=16;
-    const lineScore=pointCloudSimilarity2(actualCloud,expectedCloud,tolerance);
-    const matchedCount=expectedLines.filter(line=>directedPointCoverage2(line,actualCloud,tolerance)>=55).length;
-    let score=Math.round(contourScore*.55+lineScore*.41+proportionScore*.04);
-    if(contourScore<60)score=Math.min(score,64);
-    score=Math.max(0,Math.min(100,score));
-
-    const notes=[];
-    if(contourScore>=78)notes.push('Общий контур хорошо совпадает с образцом.');
-    else if(contourScore>=60)notes.push('Часть контура совпадает; проверь расположение деталей.');
-    else notes.push('Общий контур заметно отличается от образца.');
-    notes.push('Похоже на '+matchedCount+' из '+expected.length+' черт. Порядок, направление и объединение движений не важны.');
-    return {score,imageScore:contourScore,lineScore:Math.round(lineScore),matchedCount,expectedCount:expected.length,actualCount:actual.length,notes,proportionScore:Math.round(proportionScore)};
-  }
-  function createReference2(host,ch){
-    host.innerHTML='';
-    if(!window.HanziWriter){host.textContent=ch;return null;}
-    try{
-      return HanziWriter.create(host,ch,{width:105,height:105,padding:5,showCharacter:true,showOutline:false,strokeColor:'#252621',strokeWidth:3,renderer:'svg'});
-    }catch(e){host.textContent=ch;return null;}
-  }
-  function createUserPreview2(strokes){
-    const canvas=document.createElement('canvas');canvas.width=160;canvas.height=160;
-    const ctx=canvas.getContext('2d');ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#252621';ctx.lineWidth=7;
-    const bounds=getBounds2(strokes);if(!bounds)return canvas;
-    const w=Math.max(1,bounds.maxX-bounds.minX),h=Math.max(1,bounds.maxY-bounds.minY);
-    const scale=Math.min(132/w,132/h),left=(160-w*scale)/2,top=(160-h*scale)/2;
-    strokes.forEach(stroke=>{
-      if(!stroke.length)return;
-      ctx.beginPath();ctx.moveTo(left+(stroke[0][0]-bounds.minX)*scale,top+(stroke[0][1]-bounds.minY)*scale);
-      for(let i=1;i<stroke.length;i++)ctx.lineTo(left+(stroke[i][0]-bounds.minX)*scale,top+(stroke[i][1]-bounds.minY)*scale);
-      ctx.stroke();
-    });
-    return canvas;
-  }
-  function buildCharResult2(ch,index,result,userStrokes){
-    const card=document.createElement('div');card.className='result-char';
-    const compare=document.createElement('div');compare.className='result-compare';
-    const yourPanel=document.createElement('div');yourPanel.className='result-preview-panel';
-    const yourLabel=document.createElement('div');yourLabel.className='result-preview-label';yourLabel.textContent='Твоё написание';
-    const yourBox=document.createElement('div');yourBox.className='result-preview-box';yourBox.appendChild(createUserPreview2(userStrokes||[]));
-    yourPanel.appendChild(yourLabel);yourPanel.appendChild(yourBox);
-    const refPanel=document.createElement('div');refPanel.className='result-preview-panel';
-    const refLabel=document.createElement('div');refLabel.className='result-preview-label';refLabel.textContent='Печатный эталон';
-    const refBox=document.createElement('div');refBox.className='result-preview-box';
-    const printed=document.createElement('div');printed.className='printed-glyph';printed.textContent=ch;
-    refBox.appendChild(printed);refPanel.appendChild(refLabel);refPanel.appendChild(refBox);
-    compare.appendChild(yourPanel);compare.appendChild(refPanel);card.appendChild(compare);
-    const info=document.createElement('div');
-    const pct=document.createElement('div');pct.style.fontWeight='600';
-    pct.textContent=result.unavailable?'Эталон недоступен':'Сходство контура: '+result.score+'%';
-    const count=document.createElement('div');count.className='muted';count.style.fontSize='11px';
-    count.textContent=result.unavailable?'':'Совпало черт: '+(result.matchedCount||0)+' из '+result.expectedCount+' · отдельных движений: '+result.actualCount;
-    info.appendChild(pct);info.appendChild(count);card.appendChild(info);
-    const notes=document.createElement('div');notes.className='result-notes';notes.textContent=(result.notes||[]).join(' ');card.appendChild(notes);
-    if(!result.unavailable&&window.HanziWriter){
+  function buildCharResult2(expected,recognized){
+    const card=document.createElement("div");card.className="result-char";
+    const compare=document.createElement("div");compare.className="recognition-word-results";
+    const recognizedPanel=document.createElement("div");
+    const recognizedLabel=document.createElement("div");recognizedLabel.className="result-preview-label";recognizedLabel.textContent="Распознано";
+    const recognizedGlyph=document.createElement("div");recognizedGlyph.className="printed-glyph";recognizedGlyph.textContent=recognized||"—";
+    recognizedPanel.append(recognizedLabel,recognizedGlyph);
+    const expectedPanel=document.createElement("div");
+    const expectedLabel=document.createElement("div");expectedLabel.className="result-preview-label";expectedLabel.textContent="Нужно было";
+    const expectedGlyph=document.createElement("div");expectedGlyph.className="printed-glyph";expectedGlyph.textContent=expected;
+    expectedPanel.append(expectedLabel,expectedGlyph);
+    compare.append(recognizedPanel,expectedPanel);card.appendChild(compare);
+    const result=document.createElement("div");result.className=recognized===expected?"result-match":"result-mismatch";
+    result.textContent=recognized===expected?"Совпало":"Не совпало";card.appendChild(result);
+    if(window.HanziWriter){
+      const animationHost=document.createElement("div");animationHost.className="result-animation";card.appendChild(animationHost);
       let animator=null;
-      const animationHost=document.createElement('div');animationHost.className='result-animation';card.appendChild(animationHost);
-      const button=document.createElement('button');button.className='btn result-order';button.textContent='Показать порядок черт';
+      const button=document.createElement("button");button.className="btn result-order";button.type="button";button.textContent="Показать порядок черт";
       button.onclick=()=>{
-        animationHost.classList.add('visible');
-        if(!animator)animator=HanziWriter.create(animationHost,ch,{width:140,height:140,padding:8,showCharacter:false,showOutline:false,strokeColor:'#252621',strokeAnimationSpeed:1.2});
+        animationHost.classList.add("visible");
+        if(!animator)animator=HanziWriter.create(animationHost,expected,{width:140,height:140,padding:8,showCharacter:false,showOutline:false,strokeColor:"#2764d8",strokeAnimationSpeed:1.2});
         if(animator&&animator.animateCharacter)animator.animateCharacter();
-        button.textContent='Повторить порядок черт';
+        button.textContent="Повторить порядок черт";
       };
       card.appendChild(button);
     }
     return card;
   }
-
+  async function resolveCharacter2(index){
+    const version=cellVersions2[index];
+    if(recognizedVersions2[index]===version&&recognizedCharacters2[index])return recognizedCharacters2[index];
+    return new Promise((resolve,reject)=>{
+      const timer=setTimeout(()=>{recognizeCharacter2(index,version).then(matches=>resolve(matches[0]?.hanzi||"")).catch(reject);},0);
+    });
+  }
   async function submitWriting2(){
     if(submitted2||attemptBusy2||!current)return;
-    attemptBusy2=true;
-    $2('submit-writing').disabled=true;
-    $2('clear').disabled=true;
-    $2('skip').disabled=true;
-    $2('feedback').textContent='Сравниваю общий рисунок с образцом…';
+    attemptBusy2=true;$2("submit-writing").disabled=true;$2("clear").disabled=true;$2("skip").disabled=true;$2("next").disabled=true;
+    $2("feedback").textContent="Преобразую рисунок в печатные иероглифы…";
+    $2("recognizer-status").textContent="Распознаю слово…";
     const wordAtSubmit=current.word;
-    const results=[];
     try{
-      for(let i=0;i<wordCharacters2.length;i++){
-        const ch=wordCharacters2[i];
-        try{
-          if(!window.HanziWriter)throw new Error('Hanzi Writer is unavailable');
-          const charData=await HanziWriter.loadCharacterData(ch);
-          results.push({character:ch,result:scoreCharacter2(drawings2[i]||[],charData)});
-        }catch(err){
-          console.error('Hanzi reference error',err);
-          results.push({character:ch,result:{unavailable:true,score:0,notes:['Эталон не загрузился. Проверь интернет и попробуй позже.']}});
-        }
-      }
+      const characters=await Promise.all(wordCharacters2.map((_,index)=>resolveCharacter2(index)));
       if(!current||current.word!==wordAtSubmit)return;
+      const recognizedWord=characters.join("").normalize("NFC");
+      const expectedWord=String(wordAtSubmit||"").normalize("NFC");
+      const success=recognizedWord.length>0&&recognizedWord===expectedWord;
       submitted2=true;
-      drawings2.forEach((_,i)=>{
-        const cv=$2('writing-panels').querySelectorAll('canvas')[i];
-        if(cv)cv.style.opacity='.72';
-      });
-      const usable=results.filter(x=>!x.result.unavailable);
-      const overall=usable.length?Math.round(usable.reduce((a,x)=>a+x.result.score,0)/usable.length):0;
-      const success=usable.length===results.length&&overall>=65&&
-        usable.every(x=>x.result.score>=65&&x.result.matchedCount>=Math.ceil(x.result.expectedCount*.75));
-      const summary=$2('analysis-summary');
-      summary.textContent='Сходство контуров: '+overall+'%. '+
-        (success?'Все иероглифы похожи на образец. Порядок штрихов не учитывался.':
-        'Сравни контур и совпавшие черты ниже. Порядок, направление и число отдельных движений не важны; каждый знак должен набрать не меньше 65%.');
-      const resultList=$2('result-list');resultList.innerHTML='';
-      results.forEach((item,i)=>resultList.appendChild(buildCharResult2(item.character,i,item.result,drawings2[i]||[])));
-      $2('analysis-panel').classList.remove('hidden');
-      $2('feedback').textContent='Написание сохранено. Оригинал и разбор готовы.';
-      $2('submit-writing').disabled=true;
-      $2('clear').disabled=false;
-      $2('clear').textContent='Ещё одна попытка';
-      $2('retry-writing').disabled=false;
-      $2('next').disabled=false;
-      $2('skip').disabled=false;
-      $2('analysis-panel').scrollIntoView({behavior:'smooth',block:'nearest'});
-      if(typeof rate==='function')rate(success);
-      let history=[];try{history=JSON.parse(localStorage.getItem('hanzi-attempt-history')||'[]')||[];}catch(e){}
-      history.unshift({word:wordAtSubmit,score:overall,success:success,date:new Date().toISOString(),
-        characters:results.map(x=>({character:x.character,score:x.result.score,notes:x.result.notes||[],unavailable:!!x.result.unavailable}))});
-      try{localStorage.setItem('hanzi-attempt-history',JSON.stringify(history.slice(0,200)));}catch(e){}
-    }catch(err){
-      console.error(err);
-      $2('feedback').textContent='Не получилось завершить проверку. Написание осталось на экране — можно повторить отправку.';
-      $2('submit-writing').disabled=false;
-      $2('clear').disabled=false;
-      $2('skip').disabled=false;
-    }finally{
-      attemptBusy2=false;
-    }
+      $2("recognized-word-live").textContent=recognizedWord||"—";
+      $2("recognized-word-status").textContent=success?"Распознанное слово совпало с ответом":"Распознанный текст можно сравнить с ответом ниже";
+      characters.forEach((glyph,index)=>applyRecognition2(index,cellVersions2[index],candidateLists2[index]));
+      const summary=$2("analysis-summary");
+      summary.textContent=success
+        ?"Распознано «"+recognizedWord+"» — правильно!"
+        :"Распознано «"+(recognizedWord||"ничего")+"», а нужно «"+expectedWord+"». Попробуй ещё раз.";
+      const list=$2("result-list");list.replaceChildren();
+      wordCharacters2.forEach((expected,index)=>list.appendChild(buildCharResult2(expected,characters[index]||"")));
+      $2("analysis-panel").classList.remove("hidden");
+      $2("feedback").textContent=success?"Распознанное слово совпало с заданным. Слово засчитано!":"Распознанное слово не совпало. Напиши его ещё раз.";
+      $2("submit-writing").disabled=true;$2("clear").disabled=false;$2("clear").textContent="Ещё одна попытка";
+      $2("retry-writing").classList.toggle("hidden",success);$2("retry-writing").disabled=success;
+      $2("next").disabled=false;$2("skip").disabled=false;
+      $2("analysis-panel").scrollIntoView({behavior:"smooth",block:"nearest"});
+      if(typeof rate==="function")rate(success);
+      let history=[];try{history=JSON.parse(localStorage.getItem("hanzi-attempt-history")||"[]")||[];}catch(_){}
+      history.unshift({word:wordAtSubmit,recognized:recognizedWord,success,date:new Date().toISOString()});
+      try{localStorage.setItem("hanzi-attempt-history",JSON.stringify(history.slice(0,200)));}catch(_){}
+    }catch(error){
+      console.error("Hanzi handwriting recognition error",error);
+      submitted2=false;$2("feedback").textContent="Распознавание пока недоступно. Проверь интернет и попробуй ещё раз.";
+      $2("recognizer-status").textContent="Не удалось загрузить модель распознавания";
+      $2("submit-writing").disabled=false;$2("clear").disabled=false;$2("skip").disabled=false;$2("next").disabled=false;
+    }finally{attemptBusy2=false;}
   }
   function retryWriting2(){
     if(!current)return;
-    $2('analysis-panel').classList.add('hidden');
-    renderWritingPanels2();
-    $2('feedback').textContent='Новая попытка. Пиши самостоятельно — подсказок до отправки не будет.';
-    $2('next').disabled=true;
+    $2("analysis-panel").classList.add("hidden");$2("retry-writing").classList.remove("hidden");
+    renderWritingPanels2();$2("feedback").textContent="Новая попытка — рисуй и смотри на печатное распознавание под полем.";
+    $2("next").disabled=true;
   }
   window.renderWritingPanels2=renderWritingPanels2;
-  $2('submit-writing').onclick=submitWriting2;
-  $2('retry-writing').onclick=retryWriting2;
-  $2('clear').onclick=function(){if(submitted2){retryWriting2();}else{renderWritingPanels2();}};
-  load();
-  save();
+  $2("submit-writing").onclick=submitWriting2;
+  $2("retry-writing").onclick=retryWriting2;
+  $2("clear").onclick=()=>{if(submitted2)retryWriting2();else renderWritingPanels2();};
+  load();save();
 })();
 </script>
 
